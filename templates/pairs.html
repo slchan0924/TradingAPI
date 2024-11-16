@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Buy/Sell Pairs for {{ usym }}</title>
+    <style>
+        pairs {
+            border-collapse: collapse;
+            margin-top: 20px;
+            width: auto;
+        }
+        #pairs th, #pairs td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        body {
+            margin: 0;
+            padding: 0;
+        }
+        .data {
+            border-collapse: collapse;
+            width: 100%;
+        }
+        .data th, .data td {
+            border: 1px solid black;
+            padding: 8px;
+            text-align: left;
+        }
+        .data th {
+            background-color: #f2f2f2;
+        }
+        .input-container {
+            margin-bottom: 10px; /* Space between input fields */
+        }
+        .pts_over {
+            line-height: 10px;
+            display: flex;
+        }
+        label {
+            margin-right: 10px; /* Space between label and input */
+            font-weight: bold; /* Make the label bold */
+        }
+        body {
+            background-color: #121212; /* Dark background color */
+            color: #E0E0E0; /* Light text color for contrast */
+            font-family: 'Trebuchet MS', sans-serif; /* Font style */
+            margin: 0;
+            padding: 20px;
+        }
+        h1, h2, h3 {
+            color: #FFFFFF; /* White color for headings */
+        }
+        #overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent background */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000; /* Ensure it appears above other content */
+        }
+        .overlay-content {
+            color: white;
+            text-align: center;
+            background: rgba(0, 0, 0, 0.7); /* Darker background for the text */
+            padding: 20px;
+            border-radius: 10px;
+        }
+        .top-right {
+            position: fixed;
+            z-index: 1000;
+            top: 10px; /* Adjust as needed */
+            right: 10px; /* Adjust as needed */
+            color: #000000;
+            background-color: rgba(255, 255, 255, 0.8); /* Optional: background for better visibility */
+            padding: 5px; /* Optional: padding for aesthetics */
+            border-radius: 5px; /* Optional: rounded corners */
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.3); /* Optional: shadow for depth */
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/3.1.0/socket.io.js"></script>
+</head>
+<body>
+    <h2>Consolidated Data for {{ usym }} </h2>
+    <table id="pairs">
+        <thead>
+            <tr>
+                <th>C</th>
+                <th>C$</th>
+                <th>C$/DDiff</th>
+                <th>Short Leg IceChat</th>
+                <th>Long Leg IceChat</th>
+                <th>Sell-K DTE</th>
+                <th>D-Diff</th>
+                <th>Sell-K %UL</th>
+                <th>Strike Diff</th>
+            </tr>
+        </thead>
+        <tbody id="pairs-body">
+            <!-- Data will be inserted here! -->
+        </tbody>
+    </table>
+    <div class="top-right" id="timestamp"></div>
+    <script type="module">
+        import getCurrentTimeStamp from './static/JavaScript/timeStamp.js';
+        const body = document.getElementById("pairs-body");
+        const colOrder = [
+            "C",
+            "C$",
+            "C$/DDiff",
+            "Short Leg IceChat",
+            "Long Leg IceChat",
+            "Sell-K DTE",
+            "D-Diff",
+            "Sell-K %UL",
+            "Strike Diff"
+        ];
+        let currentDate = getCurrentTimeStamp("Asia/Tokyo", new Date());
+
+        function createTsDiv(document, date){
+            let timeStampDiv = document.createElement('div');
+            timeStampDiv.className = 'top-right';
+            timeStampDiv.id = 'timestamp';
+            timeStampDiv.innerText = `Last Refreshed: ${date}`;
+            return timeStampDiv;
+        }
+
+        window.addEventListener('message', (event) => {
+            if ('innerHTML' in body){
+                body.innerHTML = "";
+            }
+            const pairsData = event.data;
+            pairsData.sort( (a, b) => {
+                return parseFloat(b["C$"])- parseFloat(a["C$"]);
+            })
+            pairsData.forEach((pair) => {
+                const tr = document.createElement('tr');
+                colOrder.forEach( (col) => {
+                    const td = document.createElement('td');
+                    if (col in pair){
+                        td.innerText = pair[col];
+                    }else{
+                        td.innerText = '';
+                    }
+                    tr.appendChild(td);
+                })
+                body.appendChild(tr);
+            });
+            let ts = document.getElementById('timestamp');
+            currentDate = getCurrentTimeStamp("Asia/Tokyo", new Date());
+            if (!ts){
+                ts = createTsDiv(document, currentDate);
+            }else{
+                ts.innerText = `Last Refreshed: ${currentDate}`;
+            }
+            document.body.appendChild(ts);
+        })
+        let timeStampDiv = createTsDiv(document, currentDate);
+        document.body.appendChild(timeStampDiv);
+    </script>
+</body>
+</html>

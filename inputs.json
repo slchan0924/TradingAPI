@@ -1,0 +1,1 @@
+{"target_symbols": ["SPX", "SPY", "QQQ"], "target_strike_ranges": ["92-95", "92-97", "82-87"], "expiry_combo": ["10,4"], "ps_ul": ["96"], "ps_points_wide": ["50"], "ps_expiry_range": ["4,6"], "coloring": ["Yellow", "Green"], "c_value": ["0.5", "0.4"], "points_over": "10", "c_first_d": null, "c_second_d": null}

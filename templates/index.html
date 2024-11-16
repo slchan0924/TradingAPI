@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Starting Page</title>
+    <style>
+        #activ-data-table, #put-spread-table {
+            border-collapse: collapse;
+            margin-top: 20px;
+            width: auto;
+        }
+        #activ-data-table th, #activ-data-table td, #put-spread-table th, #put-spread-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        .data {
+            border-collapse: collapse;
+            width: 100%;
+        }
+        .data th, .data td {
+            border: 1px solid black;
+            padding: 8px;
+            text-align: left;
+        }
+        .data th {
+            background-color: #f2f2f2;
+        }
+        .input-container {
+            margin-bottom: 10px; /* Space between input fields */
+        }
+        .pts_over {
+            line-height: 10px;
+            display: flex;
+        }
+        label {
+            margin-right: 10px; /* Space between label and input */
+            font-weight: bold; /* Make the label bold */
+        }
+        body {
+            background-color: #121212; /* Dark background color */
+            color: #E0E0E0; /* Light text color for contrast */
+            font-family: 'Trebuchet MS', sans-serif; /* Font style */
+            margin: 0;
+            padding: 20px;
+        }
+        h1, h2, h3 {
+            color: #FFFFFF; /* White color for headings */
+        }
+        p {
+            line-height: 1.6; /* Improved readability */
+        }
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('https://www.transparenttextures.com/patterns/asfalt-dark.png'); /* Example texture */
+            opacity: 0.1; /* Lighten the texture */
+            z-index: -1; /* Send it to the back */
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/3.1.0/socket.io.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+    <h1>Data Input</h1>
+    <form id="data-form" action="/submit" method="post">
+        <!-- Target/Source Strikes -->
+        <div class="section" style="text-align: left">
+            <h2>Target/Source Strikes</h2>
+            <table id="strike-data-table">
+                <thead>
+                    <tr>
+                        <th>Target</th>
+                        <th>Strike Range</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for target, strike_range in zip(form_data.get('target_symbols', []), form_data.get('target_strike_ranges', [])) %}
+                    <tr>
+                        <td><input type="text" name="target[]" value="{{ target }}" required></td>
+                        <td><input type="text" name="strikeRange[]" value="{{ strike_range }}" required></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            </br>
+            <button type="button" onclick="addRow('strike-data-table', ['target', 'strikeRange'])">Add Row</button></br>
+            <button type="button" onclick="removeRow('strike-data-table')">Remove Row</button></br>
+        </div>
+
+    </br>
+        <!-- Expiry Ranges -->
+        <div class="section" style="text-align: left">
+            <h2>Expiry Ranges</h2>
+            <table id="expiry-range">
+                <thead>
+                    <tr>
+                        <th>Expiry Combinations</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for expiryCombo in form_data.get('expiry_combo', []) %}
+                    <tr>
+                        <td><input type="text" name="expiryCombo[]" value="{{ expiryCombo }}" required></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            </br>
+            <button type="button" onclick="addRow('expiry-range', ['expiryCombo'])">Add Row</button></br>
+            <button type="button" onclick="removeRow('expiry-range')">Remove Row</button></br>
+        </div>
+    </br>
+        <!-- Put Spreads-->
+        <div class="section" style="text-align: left">
+            <h2>Put Spread</h2>
+            <table id="put-spread">
+                <thead>
+                    <tr>
+                        <th>UL%</th>
+                        <th>Points Wide</th>
+                        <th>Expiry Range</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for ul, pw, ep in zip(form_data.get('ps_ul', []), form_data.get('ps_points_wide', []), form_data.get('ps_expiry_range', [])) %}
+                    <tr>
+                        <td><input type="text" name="psUL[]" value="{{ ul }}" required></td>
+                        <td><input type="text" name="psPointsWide[]" value="{{ pw }}" required></td>
+                        <td><input type="text" name="psExpiryRange[]" value="{{ ep }}" required></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            </br>
+            <button type="button" onclick="addRow('put-spread', ['psUL', 'psPointsWide', 'psExpiryRange'])">Add Row</button></br>
+            <button type="button" onclick="removeRow('put-spread')">Remove Row</button></br>
+        </div>
+    </br>
+        <!-- Colouring -->
+        <div class="section" style="text-align: left">
+            <h3>Colouring</h3>
+            <table id="colouring">
+                <thead>
+                    <tr>
+                        <th>Colour</th>
+                        <th>C Value</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><input type="text" name="colour_one" value="{{ form_data.get('coloring', [''])[0] }}" required></td>
+                        <td><input type="text" name="cValue_one" value="{{ form_data.get('c_value', [''])[0] }}" required></td>
+                    </tr>
+                    <tr>
+                        <td><input type="text" name="colour_two" value="{{ form_data.get('coloring', [''])[1] }}" required></td>
+                        <td><input type="text" name="cValue_two" value="{{ form_data.get('c_value', [''])[1] }}" required></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </br>
+        <!-- Points Over -->
+        <div class="pts_over" style="text-align: left">
+            <h3>Points Over</h3>
+            <input type="number" name="points_over" value="{{ form_data.get('points_over', '') }}">
+        </div>
+    </br>
+    <h2>Get Strikes</h2>
+    <button type="button" id="submit">Process Inputs</button>
+    <div id="result"></div>
+    </form>
+    </br>
+
+    <form id="data-form-sre" action="/srepositions" method="post">
+        <h2>Get SRE Data</h2>
+        <button type="submit" id="srepositions">Get SRE Positions</button>
+    </form>
+
+    <script>
+        function addRow(tableId, colNames) {
+            const table = document.getElementById(tableId).getElementsByTagName('tbody')[0];
+            const newRow = table.insertRow();
+            colNames.forEach( (col) => {
+                let newCell = newRow.insertCell();
+                newCell.innerHTML = '<input type="text" name="' + col + '[]">'
+            })
+        }
+
+        function removeRow(tableId) {
+            const table = document.getElementById(tableId).getElementsByTagName('tbody')[0];
+            const rowCount = table.rows.length;
+            if (rowCount > 1) {
+                table.deleteRow(rowCount - 1); // Remove the last row
+            }
+        }
+    </script>
+    <script type="module">
+        import socket from './static/JavaScript/socket.js';
+
+        $(document).ready(() => {
+            $('#submit').click(() => {
+                const formData = {
+                    'target_symbols': $('#strike-data-table').find('input[name="target[]"]').map(function() {
+                            return $(this).val();
+                        }).get(),
+                    'target_strike_ranges': $('#strike-data-table').find('input[name="strikeRange[]"]').map(function() {
+                            return $(this).val();
+                        }).get(),
+                    'expiry_combo': $('#expiry-range').find('input[name="expiryCombo[]"]').map(function() {
+                            return $(this).val();
+                        }).get(),
+                    'ps_ul': $('#put-spread').find('input[name="psUL[]"]').map(function() {
+                            return $(this).val();
+                        }).get(),
+                    'ps_points_wide': $('#put-spread').find('input[name="psPointsWide[]"]').map(function() {
+                            return $(this).val();
+                        }).get(),
+                    'ps_expiry_range': $('#put-spread').find('input[name="psExpiryRange[]"]').map(function() {
+                            return $(this).val();
+                        }).get(),
+                    'coloring': [$('input[name="colour_one"]').val(), $('input[name="colour_two"]').val()],
+                    'c_value': [$('input[name="cValue_one"]').val(), $('input[name="cValue_two"]').val()],
+                    'points_over': $('input[name="points_over"]').val(),
+                    'c_first_d': $('input[name="c_first_d"]').val(),
+                    'c_second_d': $('input[name="c_second_d"]').val(),
+                }
+                $.ajax({
+                    url: '/submit',
+                    type: 'POST',
+                    data: formData,
+                    error: () => {
+                        $('#result').text('Error executing function.');
+                    }
+                });
+            });
+        });
+
+        let sreTab;
+        function startSRECalcs() {
+            // Send an AJAX request to start the calculations
+            $.ajax({
+                url: '/srepositions',
+                method: 'POST',
+                success: () => {
+                    if (!sreTab || sreTab.closed){
+                        sreTab = window.open('/SRE', '_blank');
+                        const checkWindowClosed = setInterval(() => {
+                            if (sreTab && sreTab.closed){
+                                clearInterval(checkWindowClosed); // Stop checking
+                                sreTab = null; // Clear the reference
+                            }
+                        }, 1000);
+                    }
+                    const checkSessionData = setInterval(() => {
+                        $.get('/srepositions/check', (data) => {
+                            if (data.ready) {
+                                // Data is ready, send it to the new tab
+                                console.log("Sending")
+                                sreTab.postMessage(data.html, "*");
+                            } else {
+                                console.log("Data not ready yet.");
+                            }
+                        });
+                    }, 10000); // Check every second
+                },
+                error: (a, b, c) => {
+                    console.log(JSON.stringify(c))
+                    console.error('Error starting calculations');
+                }
+            });
+        }
+
+        // Function to handle button click
+        $(document).ready(() => {
+            $('#data-form-sre').on('submit', startSRECalcs);
+        });
+        
+        const openedWindows = {};
+        socket.on('buy_sell_pairs', (data) => {
+            Object.keys(data).forEach((key) => {
+                const underlyingPairs = data[key];
+                if (underlyingPairs.length > 0) {
+                    let newWindow;
+                    if (!openedWindows[key] || openedWindows[key].closed) {
+                        // Open a new tab and store the reference
+                        openedWindows[key] = window.open(`/pairs/${key}`, '_blank');
+                        if (openedWindows[key]) { // Check if the window was successfully opened
+                            // Check if the new window is closed
+                            const checkIfClosed = setInterval(() => {
+                                if (openedWindows[key].closed) {
+                                    clearInterval(checkIfClosed); // Stop checking
+                                    openedWindows[key] = null;
+                                }
+                            }, 1000);
+                            openedWindows[key].onload = () => {
+                                openedWindows[key].postMessage(data[key], "*");
+                            }
+                        } else {
+                            console.error(`Failed to open tab for key: ${key}. It might be blocked by a popup blocker.`);
+                        }
+                    } else {
+                        console.log(`Buy/Sell Pairs: Sending data to existing pairs tab ${key}`);
+                        openedWindows[key].postMessage(data[key], "*");
+                    }
+                }
+            });
+        })
+        let spreadWindow;
+        socket.on('put_spread_pairs', (data) => {
+            console.debug(JSON.stringify(data));
+            if (!spreadWindow || spreadWindow.closed){
+                spreadWindow = window.open('putSpread', '_blank');
+                const checkIfClosed = setInterval(() => {
+                    if (spreadWindow.closed) {
+                        clearInterval(checkIfClosed); // Stop checking
+                        spreadWindow = null;
+                    }
+                }, 1000);
+                spreadWindow.onload = () => {
+                    spreadWindow.postMessage(data, "*");
+                }
+                console.log("Writing to Put Spreads");
+            }else{
+                spreadWindow.postMessage(data, "*");
+                console.log("Put Spreads: Already have a table open, updating existing tab!")
+            }
+        })
+    </script>
+</body>
+</html>
