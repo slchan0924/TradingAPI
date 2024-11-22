@@ -14,4 +14,10 @@ function getCurrentTimeStamp(tz, time){
     return currentDate;
 }
 
-export default getCurrentTimeStamp = getCurrentTimeStamp;
+function createTsDiv(document, date){
+    let timeStampDiv = document.createElement('div');
+    timeStampDiv.className = 'top-right';
+    timeStampDiv.id = 'timestamp';
+    timeStampDiv.innerText = `Last Refreshed: ${date}`;
+    return timeStampDiv;
+}

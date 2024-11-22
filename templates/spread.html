@@ -3,98 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <title>Put Spreads</title>
-    <style>
-        put-spread-table {
-            border-collapse: collapse;
-            margin-top: 20px;
-            width: auto;
-        }
-        #put-spread-table th, #put-spread-table td {
-            border: 1px solid #ddd;
-            padding: 8px;
-            text-align: left;
-        }
-        body {
-            margin: 0;
-            padding: 0;
-        }
-        .data {
-            border-collapse: collapse;
-            width: 100%;
-        }
-        .data th, .data td {
-            border: 1px solid black;
-            padding: 8px;
-            text-align: left;
-        }
-        .data th {
-            background-color: #f2f2f2;
-        }
-        .input-container {
-            margin-bottom: 10px; /* Space between input fields */
-        }
-        .pts_over {
-            line-height: 10px;
-            display: flex;
-        }
-        label {
-            margin-right: 10px; /* Space between label and input */
-            font-weight: bold; /* Make the label bold */
-        }
-        body {
-            background-color: #121212; /* Dark background color */
-            color: #E0E0E0; /* Light text color for contrast */
-            font-family: 'Trebuchet MS', sans-serif; /* Font style */
-            margin: 0;
-            padding: 20px;
-        }
-        h1, h2, h3 {
-            color: #FFFFFF; /* White color for headings */
-        }
-        #overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent background */
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000; /* Ensure it appears above other content */
-        }
-        .overlay-content {
-            color: white;
-            text-align: center;
-            background: rgba(0, 0, 0, 0.7); /* Darker background for the text */
-            padding: 20px;
-            border-radius: 10px;
-        }
-        .top-right {
-            position: fixed;
-            z-index: 1000;
-            top: 10px; /* Adjust as needed */
-            right: 10px; /* Adjust as needed */
-            color: #000000;
-            background-color: rgba(255, 255, 255, 0.8); /* Optional: background for better visibility */
-            padding: 5px; /* Optional: padding for aesthetics */
-            border-radius: 5px; /* Optional: rounded corners */
-            box-shadow: 0 0 5px rgba(0, 0, 0, 0.3); /* Optional: shadow for depth */
-        }
-    </style>
+    <link rel="stylesheet" href="../static/CSS/pairs.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/3.1.0/socket.io.js"></script>
+    <script src="{{ url_for('static', filename='JavaScript/timeStamp.js') }}"></script>
 </head>
 <body>
     <h2>Put Spreads</h2>
     <table id="put-spread-table">
         <thead>
             <tr>
-                <th>Upper %UL</th>
+                <th>Short %UL</th>
                 <th>K-Diff</th>
                 <th>DTE</th>
-                <th>Mid</th>
-                <th>Upper IceChat</th>
-                <th>Lower IceChat</th>
+                <th>C</th>
+                <th>MidAvg</th>
+                <th>Sell Mid</th>
+                <th>Buy Mid</th>
+                <th>Short Leg IceChat</th>
+                <th>Long Leg IceChat</th>
             </tr>
         </thead>
         <tbody id="put-spread-body">
@@ -103,25 +29,14 @@
     </table>
     <div class="top-right" id="timestamp"></div>
     <script type="module">
-        import getCurrentTimeStamp from './static/JavaScript/timeStamp.js';
+        const selectedTimezone = localStorage.getItem('selectedTimezone') || 'Asia/Tokyo'; // Default to Tokyo if not set
+        const table = document.getElementById("put-spread-table");
+        const headerTags = table.getElementsByTagName('th');
+        let headers = [...headerTags].map( (th) => {
+            return th.textContent;
+        });
         const body = document.getElementById("put-spread-body");
-        const colOrder = [
-            "Upper %UL",
-            "K-Diff",
-            "DTE",
-            "Mid",
-            "Upper IceChat",
-            "Lower IceChat"
-        ];
-        let currentDate = getCurrentTimeStamp('Asia/Tokyo', new Date());
-
-        function createTsDiv(document, date){
-            let timeStampDiv = document.createElement('div');
-            timeStampDiv.className = 'top-right';
-            timeStampDiv.id = 'timestamp';
-            timeStampDiv.innerText = `Last Refreshed: ${date}`;
-            return timeStampDiv;
-        }
+        let currentDate = getCurrentTimeStamp(selectedTimezone, new Date());
 
         // for subsequent updates!
         window.addEventListener('message', (event) => {
@@ -130,11 +45,11 @@
             }
             const pairsData = event.data;
             pairsData.sort( (a, b) => {
-                return parseFloat(b["Mid"])- parseFloat(a["Mid"]);
+                return parseFloat(b["C"]) - parseFloat(a["C"]);
             })
             pairsData.forEach((pair) => {
                 const tr = document.createElement('tr');
-                colOrder.forEach( (col) => {
+                headers.forEach( (col) => {
                     const td = document.createElement('td');
                     if (col in pair){
                         td.innerText = pair[col];
@@ -146,7 +61,7 @@
                 body.appendChild(tr);
             });
             let ts = document.getElementById('timestamp');
-            currentDate = getCurrentTimeStamp('Asia/Tokyo', new Date());
+            currentDate = getCurrentTimeStamp(selectedTimezone, new Date());
             if (!ts){
                 ts = createTsDiv(document, currentDate);
             }else{

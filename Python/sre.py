@@ -14,6 +14,7 @@ def format_number(x):
 # Global Variables
 current_time_in_NY = datetime.now(pytz.timezone("America/New_York"))
 
+
 def construct_risk_shocks(
     vol_min: int, vol_max: int, vol_incr: int, und_min: int, und_max: int, und_incr: int
 ) -> list[dict]:
@@ -311,9 +312,10 @@ class SRERisk(createConnection):
             curr_shock += 1
         self.ps_ladders_df = pd.DataFrame(ps_ladders)
 
-    def calc_dte_weighted_avg(self):
+    def calc_weighted_avg(self):
         threshold_ul = 93
         dte_wa = 0
+        strike_wa = 0
         lots_total = 0
         for _, position in self.positions_df.iterrows():
             if (
@@ -322,12 +324,15 @@ class SRERisk(createConnection):
                 and "VIX" not in position["Underlying"]
             ):
                 dte_wa += position["Lots"] * position["DTE"]
+                strike_wa += position["Strike"] * position["DTE"]
                 lots_total += position["Lots"]
 
         if lots_total != 0:
             self.dte_wa = round(dte_wa / lots_total, 2)
+            self.strike_wa = round(strike_wa / lots_total, 2)
         else:
             self.dte_wa = 0
+            self.strike_wa = 0
 
     def calc_mkt_risk(self):
         normal_risk_strings = construct_risk_shocks(0, 50, 25, -8, 1, 1)
@@ -415,7 +420,7 @@ class SRERisk(createConnection):
         )
 
         dte_avg = self.dte_wa
-        # margin
+        strike_avg = self.strike_wa
         margin_values = self.margin
 
         account_status = {
@@ -445,12 +450,13 @@ class SRERisk(createConnection):
         )
 
         result = {
-            'acct_status': account_status_html,
-            'risk_ladder': risk_ladder_df_html,
-            'extreme_risk_ladder': extreme_risk_ladder_df_html,
-            'margin': margin_status_html,
-            'positions': positions_df_html,
-            'dte_avg': dte_avg,
-            'ps_max_value': ps_max_value_df_html,
+            "acct_status": account_status_html,
+            "risk_ladder": risk_ladder_df_html,
+            "extreme_risk_ladder": extreme_risk_ladder_df_html,
+            "margin": margin_status_html,
+            "positions": positions_df_html,
+            "strike_avg": strike_avg,
+            "dte_avg": dte_avg,
+            "ps_max_value": ps_max_value_df_html,
         }
         return result

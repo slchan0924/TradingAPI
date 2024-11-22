@@ -4,69 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Starting Page</title>
-    <style>
-        #activ-data-table, #put-spread-table {
-            border-collapse: collapse;
-            margin-top: 20px;
-            width: auto;
-        }
-        #activ-data-table th, #activ-data-table td, #put-spread-table th, #put-spread-table td {
-            border: 1px solid #ddd;
-            padding: 8px;
-            text-align: left;
-        }
-        .data {
-            border-collapse: collapse;
-            width: 100%;
-        }
-        .data th, .data td {
-            border: 1px solid black;
-            padding: 8px;
-            text-align: left;
-        }
-        .data th {
-            background-color: #f2f2f2;
-        }
-        .input-container {
-            margin-bottom: 10px; /* Space between input fields */
-        }
-        .pts_over {
-            line-height: 10px;
-            display: flex;
-        }
-        label {
-            margin-right: 10px; /* Space between label and input */
-            font-weight: bold; /* Make the label bold */
-        }
-        body {
-            background-color: #121212; /* Dark background color */
-            color: #E0E0E0; /* Light text color for contrast */
-            font-family: 'Trebuchet MS', sans-serif; /* Font style */
-            margin: 0;
-            padding: 20px;
-        }
-        h1, h2, h3 {
-            color: #FFFFFF; /* White color for headings */
-        }
-        p {
-            line-height: 1.6; /* Improved readability */
-        }
-        body::before {
-            content: '';
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: url('https://www.transparenttextures.com/patterns/asfalt-dark.png'); /* Example texture */
-            opacity: 0.1; /* Lighten the texture */
-            z-index: -1; /* Send it to the back */
-        }
-    </style>
+    <link rel="stylesheet" href="../static/CSS/homePage.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/3.1.0/socket.io.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 </head>
 <body>
+    <div id="time-display" class="time-display">
+        <select id="timezone-selector"></select>
+        <div id="current-time"></div>
+    </div>
+    <script src="../static/JavaScript/currentTime.js"></script>
     <h1>Data Input</h1>
     <form id="data-form" action="/submit" method="post">
         <!-- Target/Source Strikes -->
@@ -92,7 +39,6 @@
             <button type="button" onclick="addRow('strike-data-table', ['target', 'strikeRange'])">Add Row</button></br>
             <button type="button" onclick="removeRow('strike-data-table')">Remove Row</button></br>
         </div>
-
     </br>
         <!-- Expiry Ranges -->
         <div class="section" style="text-align: left">
@@ -116,7 +62,7 @@
             <button type="button" onclick="removeRow('expiry-range')">Remove Row</button></br>
         </div>
     </br>
-        <!-- Put Spreads-->
+        <!-- Put Spreads -->
         <div class="section" style="text-align: left">
             <h2>Put Spread</h2>
             <table id="put-spread">
@@ -144,22 +90,32 @@
     </br>
         <!-- Colouring -->
         <div class="section" style="text-align: left">
-            <h3>Colouring</h3>
-            <table id="colouring">
+            <h3>C Configurations</h3>
+            <table id="CTime">
                 <thead>
                     <tr>
-                        <th>Colour</th>
-                        <th>C Value</th>
+                        <th>Start Time</th>
+                        <th>End Time</th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr>
-                        <td><input type="text" name="colour_one" value="{{ form_data.get('coloring', [''])[0] }}" required></td>
-                        <td><input type="text" name="cValue_one" value="{{ form_data.get('c_value', [''])[0] }}" required></td>
+                        <td><input type="time" name="c_avg_start_time" value="{{ form_data.get('c_avg_start_time') if form_data.get('c_avg_start_time') else '09:00' }}"  required></td>
+                        <td><input type="time" name="c_avg_end_time" value="{{ form_data.get('c_avg_end_time') if form_data.get('c_avg_end_time') else '17:00' }}" required></td>
                     </tr>
+                </tbody>
+            </table>
+            <table id="CValue">
+                <thead>
                     <tr>
-                        <td><input type="text" name="colour_two" value="{{ form_data.get('coloring', [''])[1] }}" required></td>
-                        <td><input type="text" name="cValue_two" value="{{ form_data.get('c_value', [''])[1] }}" required></td>
+                        <th>C'</th>
+                        <th>C''</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><input type="number" name="c_first_d" value="{{ form_data.get('c_first_d') }}" required></td>
+                        <td><input type="number" name="c_second_d" value="{{ form_data.get('c_second_d') }}" required></td>
                     </tr>
                 </tbody>
             </table>
@@ -171,8 +127,19 @@
             <input type="number" name="points_over" value="{{ form_data.get('points_over', '') }}">
         </div>
     </br>
+    <div class="section" style="text-align: left">
+        <h3>Output Configurations</h3>
+        <label for="showLongBidVolume">Show Long Bid #</label>
+        <input type="checkbox" id="showLongBidVolume" name="showLongBidVolume" value="{{ showLongBidVolume }}"><br>
+        <label for="showLongAskVolume">Show Long Ask #</label>
+        <input type="checkbox" id="showLongAskVolume" name="showLongAskVolume" value="{{ showLongAskVolume }}"><br>
+        <label for="showShortBidVolume">Show Short Bid #</label>
+        <input type="checkbox" id="showShortBidVolume" name="showShortBidVolume" value="{{ showShortBidVolume }}"><br>
+        <label for="showShortAskVolume">Show Short Ask #</label>
+        <input type="checkbox" id="showShortAskVolume" name="showShortAskVolume" value="{{ showShortAskVolume }}"><br>
+    </div>
     <h2>Get Strikes</h2>
-    <button type="button" id="submit">Process Inputs</button>
+    <button type="submit" id="submit">Process Inputs</button>
     <div id="result"></div>
     </form>
     </br>
@@ -205,6 +172,7 @@
 
         $(document).ready(() => {
             $('#submit').click(() => {
+                event.preventDefault();
                 const formData = {
                     'target_symbols': $('#strike-data-table').find('input[name="target[]"]').map(function() {
                             return $(this).val();
@@ -224,12 +192,17 @@
                     'ps_expiry_range': $('#put-spread').find('input[name="psExpiryRange[]"]').map(function() {
                             return $(this).val();
                         }).get(),
-                    'coloring': [$('input[name="colour_one"]').val(), $('input[name="colour_two"]').val()],
-                    'c_value': [$('input[name="cValue_one"]').val(), $('input[name="cValue_two"]').val()],
-                    'points_over': $('input[name="points_over"]').val(),
+                    'c_avg_start_time': $('input[name="c_avg_start_time"]').val(),
+                    'c_avg_end_time': $('input[name="c_avg_end_time"]').val(),
                     'c_first_d': $('input[name="c_first_d"]').val(),
                     'c_second_d': $('input[name="c_second_d"]').val(),
+                    'points_over': $('input[name="points_over"]').val(),
+                    'showLongBidVolume': $('input[name="showLongBidVolume"]').is(':checked'),
+                    'showLongAskVolume': $('input[name="showLongAskVolume"]').is(':checked'),
+                    'showShortBidVolume': $('input[name="showShortBidVolume"]').is(':checked'),
+                    'showShortAskVolume': $('input[name="showShortAskVolume"]').is(':checked'),
                 }
+                console.log(JSON.stringify(formData));
                 $.ajax({
                     url: '/submit',
                     type: 'POST',
@@ -283,37 +256,41 @@
         
         const openedWindows = {};
         socket.on('buy_sell_pairs', (data) => {
+            const display = {
+                "showLongBidSize": document.getElementById('showLongBidVolume').checked,
+                "showLongAskSize": document.getElementById('showLongAskVolume').checked,
+                "showShortBidSize": document.getElementById('showShortBidVolume').checked,
+                "showShortAskSize": document.getElementById('showShortAskVolume').checked,
+            };
             Object.keys(data).forEach((key) => {
                 const underlyingPairs = data[key];
                 if (underlyingPairs.length > 0) {
+                    display['inputData'] = underlyingPairs;
                     let newWindow;
                     if (!openedWindows[key] || openedWindows[key].closed) {
                         // Open a new tab and store the reference
                         openedWindows[key] = window.open(`/pairs/${key}`, '_blank');
-                        if (openedWindows[key]) { // Check if the window was successfully opened
-                            // Check if the new window is closed
-                            const checkIfClosed = setInterval(() => {
-                                if (openedWindows[key].closed) {
-                                    clearInterval(checkIfClosed); // Stop checking
-                                    openedWindows[key] = null;
-                                }
-                            }, 1000);
-                            openedWindows[key].onload = () => {
-                                openedWindows[key].postMessage(data[key], "*");
+                        // Check if the new window is closed
+                        const checkIfClosed = setInterval(() => {
+                            if (openedWindows[key].closed) {
+                                clearInterval(checkIfClosed); // Stop checking
+                                openedWindows[key] = null;
                             }
-                        } else {
-                            console.error(`Failed to open tab for key: ${key}. It might be blocked by a popup blocker.`);
+                        }, 1000);
+                        openedWindows[key].onload = () => {
+                            console.log(display["inputData"]);
+                            openedWindows[key].postMessage(display, "*");
                         }
+                        console.log(`Writing to pairs ${key}`);
                     } else {
                         console.log(`Buy/Sell Pairs: Sending data to existing pairs tab ${key}`);
-                        openedWindows[key].postMessage(data[key], "*");
+                        openedWindows[key].postMessage(display, "*");
                     }
                 }
             });
         })
         let spreadWindow;
         socket.on('put_spread_pairs', (data) => {
-            console.debug(JSON.stringify(data));
             if (!spreadWindow || spreadWindow.closed){
                 spreadWindow = window.open('putSpread', '_blank');
                 const checkIfClosed = setInterval(() => {

@@ -4,85 +4,11 @@
     <title>SRE Output</title>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <style>
-        body {
-            margin: 0;
-            padding: 0;
-        }
-        #overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent background */
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000; /* Ensure it appears above other content */
-        }
-        .overlay-content {
-            color: white;
-            text-align: center;
-            background: rgba(0, 0, 0, 0.7); /* Darker background for the text */
-            padding: 20px;
-            border-radius: 10px;
-        }
-        .top-right {
-            position: fixed;
-            z-index: 1000;
-            top: 10px; /* Adjust as needed */
-            right: 10px; /* Adjust as needed */
-            color: #000000;
-            background-color: rgba(255, 255, 255, 0.8); /* Optional: background for better visibility */
-            padding: 5px; /* Optional: padding for aesthetics */
-            border-radius: 5px; /* Optional: rounded corners */
-            box-shadow: 0 0 5px rgba(0, 0, 0, 0.3); /* Optional: shadow for depth */
-        }
-    </style>
+    <link rel="stylesheet" href="../static/CSS/sre.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/3.1.0/socket.io.js"></script>
+    <script src="{{ url_for('static', filename='JavaScript/timeStamp.js') }}"></script>
 </head>
 <body>
-    <style>
-        table {
-            border-collapse: collapse;
-            width: auto;
-        }
-        .table-container {
-            display: flex; /* Use flexbox to align tables side by side */
-            justify-content: space-between; /* Space between the tables */
-        }
-        th, td {
-            border: 1px solid black;
-            padding: 8px;
-            text-align: left;
-            white-space: nowrap;
-        }
-        h1, h2, h3 {
-            color: #FFFFFF; /* White color for headings */
-        }
-        body {
-            background-color: #121212; /* Dark background color */
-            color: #E0E0E0; /* Light text color for contrast */
-            font-family: 'Trebuchet MS', sans-serif; /* Font style */
-            margin: 0;
-            padding: 20px;
-        }
-        p {
-            line-height: 1.6; /* Improved readability */
-        }
-        body::before {
-            content: '';
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: url('https://www.transparenttextures.com/patterns/asfalt-dark.png'); /* Example texture */
-            opacity: 0.1; /* Lighten the texture */
-            z-index: -1; /* Send it to the back */
-        }
-    </style>
     <div id="overlay">
         <div class="overlay-content">
             <h2>Loading...</h2>
@@ -113,34 +39,37 @@
         <div id="section_dte_avg">
             <p id="dte_avg"><b>DTE Weighted Average</b></p>
         </div>
+        <div id="section_strike_avg">
+            <p id="strike_avg"><b>Strike Weighted Average</b></p>
+        </div>
         <div id="section_ps_max_value">
             <h2 id="ps_max_value">PS Max Value Ladder</h2>
             <div class="table-container"></div>
         </div>
     </div>
     <script type="module">
-        import getCurrentTimeStamp from './static/JavaScript/timeStamp.js';
         const body = document.getElementById("sre_results");
         let timeStampDiv = document.createElement('div');
-        let currentDate = getCurrentTimeStamp("Asia/Tokyo", new Date());
+        const selectedTimezone = localStorage.getItem('selectedTimezone') || 'Asia/Tokyo'; // Default to Tokyo if not set
+        let currentDate = getCurrentTimeStamp(selectedTimezone, new Date());
         timeStampDiv.className = 'top-right';
         timeStampDiv.id = 'timestamp';
         timeStampDiv.innerText = `Last Refreshed: ${currentDate}`;
         document.body.appendChild(timeStampDiv);
 
         function populateSRETables(document, data){
-            let currentDate = getCurrentTimeStamp("Asia/Tokyo", new Date());
+            let currentDate = getCurrentTimeStamp(selectedTimezone, new Date());
             for (let key in data){
                 // key is each section name
                 let sectionContainer = document.getElementById(`section_${key}`);
                 if (sectionContainer){
-                    if (key === 'dte_avg'){
-                        let dteAvg = data[key];
-                        let existingDteAvg = sectionContainer.querySelector('.dte-avg');
-                        if (existingDteAvg) {
-                            existingDteAvg.remove(); // Remove the old value
+                    if (key === 'dte_avg' || key === 'strike_avg'){
+                        let avg = data[key];
+                        let existingAvg = sectionContainer.querySelector('.' + key.replace('_', '-'));
+                        if (existingAvg) {
+                            existingAvg.remove(); // Remove the old value
                         }
-                        sectionContainer.querySelector('#dte_avg').insertAdjacentHTML('beforeend', `<span class="dte-avg">: ${dteAvg}</span>`);
+                        sectionContainer.querySelector('#' + key).insertAdjacentHTML('beforeend', `<span class="${key.replace('_', '-')}">: ${avg}</span>`);
                     }else{
                         let sectionTable = data[key];
                         // Clear existing table if it exists
@@ -167,13 +96,11 @@
         let loadedData;
         window.addEventListener('message', (event) => {
             const data = event.data;
-            console.log('Show Overlay!!!');
             showOverlay(document);
             populateSRETables(document, data);
             setTimeout(() => hideOverlay(document), 1000);
         })
-    </script>
-    <script>
+        
         function showOverlay(document) {
             const overlay = document.getElementById('overlay');
             if (overlay){

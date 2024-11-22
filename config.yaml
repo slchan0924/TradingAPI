@@ -7,7 +7,7 @@ settings:
   ActivOnePlatform:
     host: 127.0.0.1
   ActivContentPlatform:
-    host: 127.0.0.1:9010
+    host: 192.168.1.36:9010
     table: 602
     output_fields: 456;280;362;329
   General:
