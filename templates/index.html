@@ -9,13 +9,13 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 </head>
 <body>
-    <div id="time-display" class="time-display">
-        <select id="timezone-selector"></select>
-        <div id="current-time"></div>
-    </div>
-    <script src="../static/JavaScript/currentTime.js"></script>
     <h1>Data Input</h1>
     <form id="data-form" action="/submit" method="post">
+        <div id="time-display" class="time-display">
+            <select id="timezone-selector"></select>
+            <div id="current-time" name="current-time"></div>
+        </div>
+        <script src="../static/JavaScript/currentTime.js"></script>
         <!-- Target/Source Strikes -->
         <div class="section" style="text-align: left">
             <h2>Target/Source Strikes</h2>
@@ -201,6 +201,7 @@
                     'showLongAskVolume': $('input[name="showLongAskVolume"]').is(':checked'),
                     'showShortBidVolume': $('input[name="showShortBidVolume"]').is(':checked'),
                     'showShortAskVolume': $('input[name="showShortAskVolume"]').is(':checked'),
+                    'selectedTimezone': localStorage.getItem('selectedTimezone'),
                 }
                 console.log(JSON.stringify(formData));
                 $.ajax({
@@ -234,10 +235,10 @@
                         $.get('/srepositions/check', (data) => {
                             if (data.ready) {
                                 // Data is ready, send it to the new tab
-                                console.log("Sending")
+                                console.log("Sending data to SRE Tab")
                                 sreTab.postMessage(data.html, "*");
                             } else {
-                                console.log("Data not ready yet.");
+                                console.log("SRE Data not ready yet.");
                             }
                         });
                     }, 10000); // Check every second
@@ -256,37 +257,41 @@
         
         const openedWindows = {};
         socket.on('buy_sell_pairs', (data) => {
+            console.log(JSON.stringify(data));
             const display = {
                 "showLongBidSize": document.getElementById('showLongBidVolume').checked,
                 "showLongAskSize": document.getElementById('showLongAskVolume').checked,
                 "showShortBidSize": document.getElementById('showShortBidVolume').checked,
                 "showShortAskSize": document.getElementById('showShortAskVolume').checked,
             };
-            Object.keys(data).forEach((key) => {
-                const underlyingPairs = data[key];
-                if (underlyingPairs.length > 0) {
-                    display['inputData'] = underlyingPairs;
-                    let newWindow;
-                    if (!openedWindows[key] || openedWindows[key].closed) {
-                        // Open a new tab and store the reference
-                        openedWindows[key] = window.open(`/pairs/${key}`, '_blank');
-                        // Check if the new window is closed
-                        const checkIfClosed = setInterval(() => {
-                            if (openedWindows[key].closed) {
-                                clearInterval(checkIfClosed); // Stop checking
-                                openedWindows[key] = null;
+            Object.keys(data).forEach((usym) => {
+                Object.keys(data[usym]).forEach( (expiryRange) => {
+                    const underlyingPairs = data[usym][expiryRange];
+                    if (underlyingPairs.length > 0) {
+                        let usym_display = JSON.parse(JSON.stringify(display));
+                        usym_display['inputData'] = underlyingPairs;
+                        let newWindow;
+                        let key = usym + ': ' + expiryRange;
+                        if (!openedWindows[key] || openedWindows[key].closed) {
+                            // Open a new tab and store the reference
+                            openedWindows[key] = window.open(`/pairs/${usym}/${expiryRange}`, '_blank');
+                            // Check if the new window is closed
+                            const checkIfClosed = setInterval(() => {
+                                if (openedWindows[key].closed) {
+                                    clearInterval(checkIfClosed); // Stop checking
+                                    openedWindows[key] = null;
+                                }
+                            }, 1000);
+                            openedWindows[key].onload = () => {
+                                openedWindows[key].postMessage(usym_display, "*");
                             }
-                        }, 1000);
-                        openedWindows[key].onload = () => {
-                            console.log(display["inputData"]);
-                            openedWindows[key].postMessage(display, "*");
+                            console.log(`Writing to pairs and expiry combo ${key}`);
+                        } else {
+                            console.log(`Buy/Sell Pairs: Sending data to existing pairs and expiry combo tab ${key}`);
+                            openedWindows[key].postMessage(usym_display, "*");
                         }
-                        console.log(`Writing to pairs ${key}`);
-                    } else {
-                        console.log(`Buy/Sell Pairs: Sending data to existing pairs tab ${key}`);
-                        openedWindows[key].postMessage(display, "*");
                     }
-                }
+                })
             });
         })
         let spreadWindow;

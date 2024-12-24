@@ -96,8 +96,9 @@ class SRERisk(createConnection):
     def get_data(self, req_type: str, service: str, body=None, params=None):
         if self.sre_access_token == "No Service":
             return []
+
         if req_type == "GET":
-            return requests.get(
+            result = requests.get(
                 self.sre_url_base + "/service/" + service,
                 params=params,
                 headers={
@@ -105,9 +106,9 @@ class SRERisk(createConnection):
                     "accept": "*/*",
                     "Authorization": "Bearer {}".format(self.sre_access_token),
                 },
-            ).json()
+            )
         else:
-            return requests.post(
+            result = requests.post(
                 self.sre_url_base + "/service/" + service,
                 json=body,
                 params=params,
@@ -116,7 +117,11 @@ class SRERisk(createConnection):
                     "accept": "*/*",
                     "Authorization": "Bearer {}".format(self.sre_access_token),
                 },
-            ).json()
+            )
+        if result.status_code == 200:
+            return result.json()
+        else:
+            return []
 
     def get_account(self):
         return self.get_data("GET", "accounts/{}".format(self.sre_account))
@@ -146,11 +151,11 @@ class SRERisk(createConnection):
         if len(positions) == 0:
             # mock positions
             positions = [
-                {"symbol": ".SPY 241114P475000", "pos": 1000},
-                {"symbol": ".SPXW 241114P4890000", "pos": -500},
-                {"symbol": ".SPXW 241114P4900000", "pos": 1000},
-                {"symbol": ".SPY 241117P480000", "pos": 400},
-                {"symbol": ".SPXW 241117P5435000", "pos": 1000},
+                {"symbol": ".SPY 241124P475000", "pos": 1000},
+                {"symbol": ".SPXW 241124P4890000", "pos": -500},
+                {"symbol": ".SPXW 241124P4900000", "pos": 1000},
+                {"symbol": ".SPY 241127P480000", "pos": 400},
+                {"symbol": ".SPXW 241127P5435000", "pos": 1000},
             ]
         else:
             positions = positions[0]["positions"]
@@ -200,20 +205,23 @@ class SRERisk(createConnection):
             position_result_list.append(position_data)
 
         positions_df = pd.DataFrame(position_result_list)
-        positions_df = positions_df[
-            [
-                "DTE",
-                "Lots",
-                "Underlying",
-                "Strike",
-                "%UL",
-                "IceChat String",
-                "P/C",
-                "Symbol",
-            ]
-        ].sort_values(by=["DTE"])
-        positions_df["Strike (Display)"] = positions_df["Strike"].apply(format_number)
-        positions_df["Lots (Display)"] = positions_df["Lots"].apply(format_number)
+        if len(positions_df.index) > 0:
+            positions_df = positions_df[
+                [
+                    "DTE",
+                    "Lots",
+                    "Underlying",
+                    "Strike",
+                    "%UL",
+                    "IceChat String",
+                    "P/C",
+                    "Symbol",
+                ]
+            ].sort_values(by=["DTE"])
+            positions_df["Strike (Display)"] = positions_df["Strike"].apply(
+                format_number
+            )
+            positions_df["Lots (Display)"] = positions_df["Lots"].apply(format_number)
         self.positions_df = positions_df
         self.positions = eligible_positions
 
@@ -397,26 +405,40 @@ class SRERisk(createConnection):
         self.extreme_risk_ladder_df = extreme_risk_ladder_df.transpose()
 
     def get_sre_html(self):
-        selected_positions_cols = self.positions_df[
-            [
-                "DTE",
-                "Lots (Display)",
-                "Underlying",
-                "Strike (Display)",
-                "%UL",
-                "IceChat String",
-                "P/C",
-                "Symbol",
+        if len(self.positions_df.index) > 0:
+            selected_positions_cols = self.positions_df[
+                [
+                    "DTE",
+                    "Lots (Display)",
+                    "Underlying",
+                    "Strike (Display)",
+                    "%UL",
+                    "IceChat String",
+                    "P/C",
+                    "Symbol",
+                ]
             ]
-        ]
-        positions_df = selected_positions_cols.rename(
-            columns={"Lots (Display)": "Lots", "Strike (Display)": "Strike"}
-        )
+            positions_df = selected_positions_cols.rename(
+                columns={"Lots (Display)": "Lots", "Strike (Display)": "Strike"}
+            )
+        else:
+            positions_df = pd.DataFrame(
+                columns=[
+                    "DTE",
+                    "Lots",
+                    "Underlying",
+                    "Strike",
+                    "%UL",
+                    "IceChat String",
+                    "P/C",
+                    "Symbol",
+                ]
+            )
         positions_df_html = positions_df.to_html(
-            classes="positions", header="true", index=False
+            classes="positions", header="true", index=False, table_id="positions_table"
         )
         ps_max_value_df_html = self.ps_ladders_df.to_html(
-            classes="ps_max_value", header="true", index=False
+            classes="ps_max_value", header="true", index=False, table_id="ps_max_value"
         )
 
         dte_avg = self.dte_wa
@@ -429,7 +451,10 @@ class SRERisk(createConnection):
             "P&L": [margin_values["P&L"]],
         }
         account_status_html = pd.DataFrame(account_status).to_html(
-            classes="account_status", header="true", index=False
+            classes="account_status",
+            header="true",
+            index=False,
+            table_id="account_status",
         )
 
         margin_status = {
@@ -438,15 +463,21 @@ class SRERisk(createConnection):
             "Correlation Zero Stress": [margin_values["CorrelationZeroStress"]],
         }
         margin_status_html = pd.DataFrame(margin_status).to_html(
-            classes="margin_status", header="true", index=False
+            classes="margin_status",
+            header="true",
+            index=False,
+            table_id="margin_status",
         )
 
         # risk
         risk_ladder_df_html = self.risk_ladder_df.to_html(
-            classes="risk_ladder", header="true", index=True
+            classes="risk_ladder", header="true", index=True, table_id="risk_ladder"
         )
         extreme_risk_ladder_df_html = self.extreme_risk_ladder_df.to_html(
-            classes="extreme_risk_ladder", header="true", index=True
+            classes="extreme_risk_ladder",
+            header="true",
+            index=True,
+            table_id="extreme_risk_ladder",
         )
 
         result = {

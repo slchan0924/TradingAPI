@@ -3,7 +3,6 @@ from flask import (
     session,
     render_template,
     request,
-    jsonify,
     redirect,
     url_for,
     copy_current_request_context,
@@ -15,6 +14,7 @@ from flask_socketio import SocketIO
 import threading
 import time
 import pytz
+import asyncio
 
 lock = threading.Lock()
 
@@ -42,16 +42,18 @@ def write_data_to_json(data):
 sre_risk = SRERisk()
 spread_calc = SpreadCalculation()
 activ_session = spread_calc.connect_to_activ()
-spread_calc.read_activ_strikes()
 sre_html = ""
 
 
-def launch_subscription():
-    """
-    spread_calc.get_symbols(["SPY", "SPX", "QQQ"], ["10,7", "11,6", "10,5"], "SPX", ["5,6"])
-    spread_calc.invoke_update_viewer('./symbols.txt')
-    """
-    spread_calc.subscribe(activ_session)
+async def launch_subscription():
+    count = 1
+    while count <= 1:
+        spread_calc.subscribe(activ_session)
+        count += 1
+
+
+def run_async_task():
+    asyncio.run(launch_subscription())
 
 
 # Route Functions
@@ -99,9 +101,9 @@ def check_sre_status():
 
 @app.route("/submit", methods=["POST"])
 def collectdataFromWebsite():
+    first_time = True
     with lock:
         db = createDatabase()
-        db.cleanup()
         # 1 sell strike only pair with 1 buy strike
         form_data = {
             "target_symbols": list(
@@ -127,27 +129,44 @@ def collectdataFromWebsite():
             "c_second_d": request.form.get("c_second_d"),
             "c_avg_start_time": request.form.get("c_avg_start_time") or "16:00",
             "c_avg_end_time": request.form.get("c_avg_end_time") or "16:30",
+            "selectedTimezone": request.form.get("selectedTimezone") or "Asia/Tokyo",
         }
         write_data_to_json(form_data)
         session["form_data"] = form_data
         spread_calc.get_symbols(
             form_data["target_symbols"],
             form_data["expiry_combo"],
-            "SPX",
+            ["SPX", "SPXW"],
             form_data["ps_expiry_range"],
         )
-        # spread_calc.invoke_update_viewer('./symbols.txt')
 
-        c_avg_start = datetime.strptime(form_data["c_avg_start_time"], "%H:%M")
-        c_avg_end = datetime.strptime(form_data["c_avg_end_time"], "%H:%M")
-        rolling_avg_mins = (c_avg_end - c_avg_start).total_seconds() / 60
+        # update viewer will only be invoked if input params are changed
+        re_subscribe = spread_calc.invoke_update_viewer()
+        if re_subscribe or first_time:
+            first_time = True
+            thread = threading.Thread(target=run_async_task)
+            thread.start()
+
+        tz_selected = pytz.timezone(form_data["selectedTimezone"])
+        current_time = datetime.now(tz_selected)
+        db.cleanup(current_time)
+        c_avg_start = tz_selected.localize(
+            datetime.strptime(form_data["c_avg_start_time"], "%H:%M").replace(
+                year=current_time.year, month=current_time.month, day=current_time.day
+            )
+        )
+        c_avg_end = tz_selected.localize(
+            datetime.strptime(form_data["c_avg_end_time"], "%H:%M").replace(
+                year=current_time.year, month=current_time.month, day=current_time.day
+            )
+        )
 
         run_count = 0
-        spread_start_run_time = datetime.now(pytz.timezone("America/New_York"))
-        pairs_start_run_time = datetime.now(pytz.timezone("America/New_York"))
+        spread_start_run_time = datetime.now(tz_selected)
+        pairs_start_run_time = datetime.now(tz_selected)
         while run_count < 20:
-            c_avg = db.get_rolling_c_dollar_average(int(rolling_avg_mins))
-            ps_mid_avg = db.get_rolling_mid_average(int(rolling_avg_mins))
+            c_avg = db.get_rolling_c_dollar_average(10)
+            ps_mid_avg = db.get_rolling_mid_average(10)
             try:
                 put_spread_pairs = spread_calc.get_put_spread_pairs(
                     form_data["ps_ul"],
@@ -155,16 +174,19 @@ def collectdataFromWebsite():
                     form_data["ps_expiry_range"],
                     ps_mid_avg,
                 )
-                spread_current_run_time = datetime.now(
-                    pytz.timezone("America/New_York")
-                )
-                if (spread_current_run_time - spread_start_run_time).seconds >= 30:
-                    db.insertMidData(put_spread_pairs)
+                spread_current_run_time = datetime.now(tz_selected)
+                if (
+                    (spread_current_run_time - spread_start_run_time).seconds >= 30
+                    and spread_current_run_time > c_avg_start
+                    and spread_current_run_time < c_avg_end
+                ):
+                    print("Inserting Mid Data")
+                    db.insertMidData(put_spread_pairs, spread_current_run_time)
                     spread_start_run_time = spread_current_run_time
                 session["put_spread_pairs"] = put_spread_pairs
                 socketio.emit("put_spread_pairs", put_spread_pairs)
             except Exception as error:
-                print("An exception occurred:", error)
+                print("An exception occurred while getting put spread:", error)
             try:
                 buy_sell_pairs = spread_calc.get_buy_sell_pairs(
                     form_data["target_symbols"],
@@ -172,28 +194,36 @@ def collectdataFromWebsite():
                     form_data["expiry_combo"],
                     form_data["points_over"],
                     c_avg,
-                    form_data["c_avg_start_time"],
-                    form_data["c_avg_end_time"],
                 )
-                pairs_current_run_time = datetime.now(pytz.timezone("America/New_York"))
-                if (pairs_current_run_time - pairs_start_run_time).seconds >= 30:
-                    db.insertCDollarData(buy_sell_pairs)
+                pairs_current_run_time = datetime.now(tz_selected)
+                if (
+                    (pairs_current_run_time - pairs_start_run_time).seconds >= 30
+                    and pairs_current_run_time > c_avg_start
+                    and pairs_current_run_time < c_avg_end
+                ):
+                    print("Inserting C$ Data")
+                    db.insertCDollarData(buy_sell_pairs, pairs_current_run_time)
                     pairs_start_run_time = pairs_current_run_time
                 session["buy_sell_pairs"] = buy_sell_pairs
                 socketio.emit("buy_sell_pairs", buy_sell_pairs)
             except Exception as error:
-                print("An exception occurred:", error)
-            # socketio.emit("option_data", option_data)
+                print("An exception occurred while getting buy/sell pairs:", error)
             time.sleep(5)
             run_count += 1
     return redirect(url_for("home"))
 
 
-@app.route("/pairs/<usym>")
-def pairs(usym):
+@app.route("/pairs/<usym>/<expiry_combo>")
+def pairs(usym, expiry_combo):
     buy_sell_pairs = session.get("buy_sell_pairs", "{}")
-    usym_pairs = buy_sell_pairs[usym]
-    return render_template("pairs.html", usym=usym, pairs=json.dumps(usym_pairs))
+    if expiry_combo in buy_sell_pairs[usym]:
+        usym_pairs = buy_sell_pairs[usym][expiry_combo]
+        return render_template(
+            "pairs.html",
+            usym=usym,
+            expiry_combo=expiry_combo,
+            pairs=json.dumps(usym_pairs),
+        )
 
 
 @app.route("/putSpread")
@@ -208,5 +238,5 @@ def SRE():
 
 
 if __name__ == "__main__":
-    threading.Thread(target=launch_subscription, daemon=True).start()
+    # threading.Thread(target=launch_subscription, daemon=True).start()
     socketio.run(app, allow_unsafe_werkzeug=True)

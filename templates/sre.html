@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="../static/CSS/sre.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/3.1.0/socket.io.js"></script>
     <script src="{{ url_for('static', filename='JavaScript/timeStamp.js') }}"></script>
+    <script src="{{ url_for('static', filename='JavaScript/downloadTableAsExcel.js') }}"></script>
 </head>
 <body>
     <div id="overlay">
@@ -33,7 +34,9 @@
             <div class="table-container"></div>
         </div>
         <div id="section_positions">
-            <h2 id="positions">Positions</h2>
+            <h2 id="positions" style="display: inline;">Positions</h2>
+            <button onclick="downloadTableAsExcel('positions_table', 'sre_data', ['Symbol', 'Lots'], false, 
+            ['SPY', 'SPX', 'QQQ', 'PutSpread'], ['DTE', 'Strike', 'Symbol', 'Lots'], ['Test', 'Falcon'])">Download Positions to Excel</button>
             <div class="table-container"></div>
         </div>
         <div id="section_dte_avg">
@@ -96,7 +99,7 @@
         let loadedData;
         window.addEventListener('message', (event) => {
             const data = event.data;
-            showOverlay(document);
+            // showOverlay(document);
             populateSRETables(document, data);
             setTimeout(() => hideOverlay(document), 1000);
         })
@@ -106,7 +109,6 @@
             if (overlay){
                 const overlayStyle = overlay.style;
                 if (overlayStyle){
-                    console.log("test")
                     overlayStyle.display = 'flex';
                 }
             }

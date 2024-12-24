@@ -29,7 +29,7 @@
     </table>
     <div class="top-right" id="timestamp"></div>
     <script type="module">
-        const selectedTimezone = localStorage.getItem('selectedTimezone') || 'Asia/Tokyo'; // Default to Tokyo if not set
+        const selectedTimezone = localStorage.getItem('selectedTimezone') || 'America/New_York'; // Default to Tokyo if not set
         const table = document.getElementById("put-spread-table");
         const headerTags = table.getElementsByTagName('th');
         let headers = [...headerTags].map( (th) => {
