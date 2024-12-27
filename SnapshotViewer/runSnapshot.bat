@@ -1,0 +1,1 @@
+SnapshotViewer_x86-64_win64_vc142_mds.exe -u "activ-na" -p "t769x00sd" -t 602 -f "456;280;362;329" -o "opra_snapshot.txt" -s  SPX/241231*.O;SPXW/241231*.O;SPX/250106*.O;SPXW/250106*.O;QQQ/241231*.O;QQQ/250106*.O;SPY/241231*.O;SPY/250106*.O;SPX/250102*.O;SPXW/250102*.O 

@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>SRE Output</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="../static/CSS/sre.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/3.1.0/socket.io.js"></script>
+    <script src="{{ url_for('static', filename='JavaScript/timeStamp.js') }}"></script>
+    <script src="{{ url_for('static', filename='JavaScript/downloadTableAsExcel.js') }}"></script>
+</head>
+<body>
+    <div id="overlay">
+        <div class="overlay-content">
+            <h2>Loading...</h2>
+            <p>Please wait while we fetch the data.</p>
+        </div>
+    </div>
+    <div id="sre_results">
+        <div id="section_acct_status">
+            <h2 id="acct_status">Account Status</h2>
+            <div class="table-container"></div>
+        </div>
+        <div id="section_risk_ladder">
+            <h2 id="risk_ladder">Risk Shocks</h2>
+            <div class="table-container"></div>
+        </div>
+        <div id="section_extreme_risk_ladder">
+            <h2 id="extreme_risk_ladder">Extreme Risk Shocks</h2>
+            <div class="table-container"></div>
+        </div>
+        <div id="section_margin">
+            <h2 id="margin">Margin</h2>
+            <div class="table-container"></div>
+        </div>
+        <div id="section_positions">
+            <h2 id="positions" style="display: inline;">Positions</h2>
+            <button onclick="downloadTableAsExcel('positions_table', 'sre_data', ['Symbol', 'Lots'], false, 
+            ['SPY', 'SPX', 'QQQ', 'PutSpread'], ['DTE', 'Strike', 'Symbol', 'Lots'], ['Test', 'Falcon'])">Download Positions to Excel</button>
+            <div class="table-container"></div>
+        </div>
+        <div id="section_dte_avg">
+            <p id="dte_avg"><b>DTE Weighted Average</b></p>
+        </div>
+        <div id="section_strike_avg">
+            <p id="strike_avg"><b>Strike Weighted Average</b></p>
+        </div>
+        <div id="section_ps_max_value">
+            <h2 id="ps_max_value">PS Max Value Ladder</h2>
+            <div class="table-container"></div>
+        </div>
+    </div>
+    <script type="module">
+        const body = document.getElementById("sre_results");
+        let timeStampDiv = document.createElement('div');
+        const selectedTimezone = localStorage.getItem('selectedTimezone') || 'Asia/Tokyo'; // Default to Tokyo if not set
+        let currentDate = getCurrentTimeStamp(selectedTimezone, new Date());
+        timeStampDiv.className = 'top-right';
+        timeStampDiv.id = 'timestamp';
+        timeStampDiv.innerText = `Last Refreshed: ${currentDate}`;
+        document.body.appendChild(timeStampDiv);
+
+        function populateSRETables(document, data){
+            let currentDate = getCurrentTimeStamp(selectedTimezone, new Date());
+            for (let key in data){
+                // key is each section name
+                let sectionContainer = document.getElementById(`section_${key}`);
+                if (sectionContainer){
+                    if (key === 'dte_avg' || key === 'strike_avg'){
+                        let avg = data[key];
+                        let existingAvg = sectionContainer.querySelector('.' + key.replace('_', '-'));
+                        if (existingAvg) {
+                            existingAvg.remove(); // Remove the old value
+                        }
+                        sectionContainer.querySelector('#' + key).insertAdjacentHTML('beforeend', `<span class="${key.replace('_', '-')}">: ${avg}</span>`);
+                    }else{
+                        let sectionTable = data[key];
+                        // Clear existing table if it exists
+                        let tableContainer = sectionContainer.querySelector('.table-container');
+                        tableContainer.innerHTML = ''; // Clear the old table content
+                        // Create a new div for the table
+                        let tempDiv = document.createElement('div');
+                        tempDiv.classList.add('section-table'); // Add a class for easy identification
+                        tempDiv.innerHTML = sectionTable;
+                        // Insert the new table into the container
+                        tableContainer.appendChild(tempDiv.firstChild);
+                    }
+                }
+            }
+            let ts = document.getElementById('timestamp');
+            if (!ts){
+                ts = document.createElement('div');
+                ts.className = 'top-right';
+                ts.id = 'timestamp';
+            }
+            ts.innerText = `Last Refreshed: ${currentDate}`;
+            body.appendChild(ts)
+        }
+        let loadedData;
+        window.addEventListener('message', (event) => {
+            const data = event.data;
+            // showOverlay(document);
+            populateSRETables(document, data);
+            setTimeout(() => hideOverlay(document), 1000);
+        })
+        
+        function showOverlay(document) {
+            const overlay = document.getElementById('overlay');
+            if (overlay){
+                const overlayStyle = overlay.style;
+                if (overlayStyle){
+                    overlayStyle.display = 'flex';
+                }
+            }
+        }
+    
+        function hideOverlay(document) {
+            const overlay = document.getElementById('overlay');
+            if (overlay){
+                const overlayStyle = overlay.style;
+                if (overlayStyle){
+                    overlayStyle.display = 'none';
+                }
+            }
+        }
+    </script>
+</body>
+</html>

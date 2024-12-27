@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Put Spreads</title>
+    <link rel="stylesheet" href="../static/CSS/pairs.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/3.1.0/socket.io.js"></script>
+    <script src="{{ url_for('static', filename='JavaScript/timeStamp.js') }}"></script>
+</head>
+<body>
+    <h2>Put Spreads</h2>
+    <table id="put-spread-table">
+        <thead>
+            <tr>
+                <th>Short %UL</th>
+                <th>K-Diff</th>
+                <th>DTE</th>
+                <th>C</th>
+                <th>MidAvg</th>
+                <th>Sell Mid</th>
+                <th>Buy Mid</th>
+                <th>Short Leg IceChat</th>
+                <th>Long Leg IceChat</th>
+            </tr>
+        </thead>
+        <tbody id="put-spread-body">
+            <!-- Data will be inserted here! -->
+        </tbody>
+    </table>
+    <div class="top-right" id="timestamp"></div>
+    <script type="module">
+        const selectedTimezone = localStorage.getItem('selectedTimezone') || 'America/New_York'; // Default to Tokyo if not set
+        const table = document.getElementById("put-spread-table");
+        const headerTags = table.getElementsByTagName('th');
+        let headers = [...headerTags].map( (th) => {
+            return th.textContent;
+        });
+        const body = document.getElementById("put-spread-body");
+        let currentDate = getCurrentTimeStamp(selectedTimezone, new Date());
+
+        // for subsequent updates!
+        window.addEventListener('message', (event) => {
+            if ('innerHTML' in body){
+                body.innerHTML = "";
+            }
+            const pairsData = event.data;
+            pairsData.sort( (a, b) => {
+                return parseFloat(b["C"]) - parseFloat(a["C"]);
+            })
+            pairsData.forEach((pair) => {
+                const tr = document.createElement('tr');
+                headers.forEach( (col) => {
+                    const td = document.createElement('td');
+                    if (col in pair){
+                        td.innerText = pair[col];
+                    }else{
+                        td.innerText = '';
+                    }
+                    tr.appendChild(td);
+                })
+                body.appendChild(tr);
+            });
+            let ts = document.getElementById('timestamp');
+            currentDate = getCurrentTimeStamp(selectedTimezone, new Date());
+            if (!ts){
+                ts = createTsDiv(document, currentDate);
+            }else{
+                ts.innerText = `Last Refreshed: ${currentDate}`;
+            }
+            document.body.appendChild(ts);
+        })
+        let timeStampDiv = createTsDiv(document, currentDate)
+        document.body.appendChild(timeStampDiv);
+    </script>
+</body>
+</html>

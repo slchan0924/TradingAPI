@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Starting Page</title>
+    <link rel="stylesheet" href="../static/CSS/homePage.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/3.1.0/socket.io.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+    <h1>Data Input</h1>
+    <form id="data-form" action="/submit" method="post">
+        <div id="time-display" class="time-display">
+            <select id="timezone-selector"></select>
+            <div id="current-time" name="current-time"></div>
+        </div>
+        <script src="../static/JavaScript/currentTime.js"></script>
+        <!-- Target/Source Strikes -->
+        <div class="section" style="text-align: left">
+            <h2>Target/Source Strikes</h2>
+            <table id="strike-data-table">
+                <thead>
+                    <tr>
+                        <th>Target</th>
+                        <th>Strike Range</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for target, strike_range in zip(form_data.get('target_symbols', []), form_data.get('target_strike_ranges', [])) %}
+                    <tr>
+                        <td><input type="text" name="target[]" value="{{ target }}" required></td>
+                        <td><input type="text" name="strikeRange[]" value="{{ strike_range }}" required></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            </br>
+            <button type="button" onclick="addRow('strike-data-table', ['target', 'strikeRange'])">Add Row</button></br>
+            <button type="button" onclick="removeRow('strike-data-table')">Remove Row</button></br>
+        </div>
+    </br>
+        <!-- Expiry Ranges -->
+        <div class="section" style="text-align: left">
+            <h2>Expiry Ranges</h2>
+            <table id="expiry-range">
+                <thead>
+                    <tr>
+                        <th>Expiry Combinations</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for expiryCombo in form_data.get('expiry_combo', []) %}
+                    <tr>
+                        <td><input type="text" name="expiryCombo[]" value="{{ expiryCombo }}" required></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            </br>
+            <button type="button" onclick="addRow('expiry-range', ['expiryCombo'])">Add Row</button></br>
+            <button type="button" onclick="removeRow('expiry-range')">Remove Row</button></br>
+        </div>
+    </br>
+        <!-- Put Spreads -->
+        <div class="section" style="text-align: left">
+            <h2>Put Spread</h2>
+            <table id="put-spread">
+                <thead>
+                    <tr>
+                        <th>UL%</th>
+                        <th>Points Wide</th>
+                        <th>Expiry Range</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for ul, pw, ep in zip(form_data.get('ps_ul', []), form_data.get('ps_points_wide', []), form_data.get('ps_expiry_range', [])) %}
+                    <tr>
+                        <td><input type="text" name="psUL[]" value="{{ ul }}" required></td>
+                        <td><input type="text" name="psPointsWide[]" value="{{ pw }}" required></td>
+                        <td><input type="text" name="psExpiryRange[]" value="{{ ep }}" required></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            </br>
+            <button type="button" onclick="addRow('put-spread', ['psUL', 'psPointsWide', 'psExpiryRange'])">Add Row</button></br>
+            <button type="button" onclick="removeRow('put-spread')">Remove Row</button></br>
+        </div>
+    </br>
+        <!-- Colouring -->
+        <div class="section" style="text-align: left">
+            <h3>C Configurations</h3>
+            <table id="CTime">
+                <thead>
+                    <tr>
+                        <th>Start Time</th>
+                        <th>End Time</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><input type="time" name="c_avg_start_time" value="{{ form_data.get('c_avg_start_time') if form_data.get('c_avg_start_time') else '09:00' }}"  required></td>
+                        <td><input type="time" name="c_avg_end_time" value="{{ form_data.get('c_avg_end_time') if form_data.get('c_avg_end_time') else '17:00' }}" required></td>
+                    </tr>
+                </tbody>
+            </table>
+            <table id="CValue">
+                <thead>
+                    <tr>
+                        <th>C'</th>
+                        <th>C''</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><input type="number" name="c_first_d" value="{{ form_data.get('c_first_d') }}" required></td>
+                        <td><input type="number" name="c_second_d" value="{{ form_data.get('c_second_d') }}" required></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </br>
+        <!-- Points Over -->
+        <div class="pts_over" style="text-align: left">
+            <h3>Points Over</h3>
+            <input type="number" name="points_over" value="{{ form_data.get('points_over', '') }}">
+        </div>
+    </br>
+    <div class="section" style="text-align: left">
+        <h3>Output Configurations</h3>
+        <label for="showLongBidVolume">Show Long Bid #</label>
+        <input type="checkbox" id="showLongBidVolume" name="showLongBidVolume" value="{{ showLongBidVolume }}"><br>
+        <label for="showLongAskVolume">Show Long Ask #</label>
+        <input type="checkbox" id="showLongAskVolume" name="showLongAskVolume" value="{{ showLongAskVolume }}"><br>
+        <label for="showShortBidVolume">Show Short Bid #</label>
+        <input type="checkbox" id="showShortBidVolume" name="showShortBidVolume" value="{{ showShortBidVolume }}"><br>
+        <label for="showShortAskVolume">Show Short Ask #</label>
+        <input type="checkbox" id="showShortAskVolume" name="showShortAskVolume" value="{{ showShortAskVolume }}"><br>
+    </div>
+    <h2>Get Strikes</h2>
+    <button type="submit" id="submit">Process Inputs</button>
+    <div id="result"></div>
+    </form>
+    </br>
+
+    <form id="data-form-sre" action="/srepositions" method="post">
+        <h2>Get SRE Data</h2>
+        <button type="submit" id="srepositions">Get SRE Positions</button>
+    </form>
+
+    <script>
+        function addRow(tableId, colNames) {
+            const table = document.getElementById(tableId).getElementsByTagName('tbody')[0];
+            const newRow = table.insertRow();
+            colNames.forEach( (col) => {
+                let newCell = newRow.insertCell();
+                newCell.innerHTML = '<input type="text" name="' + col + '[]">'
+            })
+        }
+
+        function removeRow(tableId) {
+            const table = document.getElementById(tableId).getElementsByTagName('tbody')[0];
+            const rowCount = table.rows.length;
+            if (rowCount > 1) {
+                table.deleteRow(rowCount - 1); // Remove the last row
+            }
+        }
+    </script>
+    <script type="module">
+        import socket from './static/JavaScript/socket.js';
+
+        $(document).ready(() => {
+            $('#submit').click(() => {
+                event.preventDefault();
+                const formData = {
+                    'target_symbols': $('#strike-data-table').find('input[name="target[]"]').map(function() {
+                            return $(this).val();
+                        }).get(),
+                    'target_strike_ranges': $('#strike-data-table').find('input[name="strikeRange[]"]').map(function() {
+                            return $(this).val();
+                        }).get(),
+                    'expiry_combo': $('#expiry-range').find('input[name="expiryCombo[]"]').map(function() {
+                            return $(this).val();
+                        }).get(),
+                    'ps_ul': $('#put-spread').find('input[name="psUL[]"]').map(function() {
+                            return $(this).val();
+                        }).get(),
+                    'ps_points_wide': $('#put-spread').find('input[name="psPointsWide[]"]').map(function() {
+                            return $(this).val();
+                        }).get(),
+                    'ps_expiry_range': $('#put-spread').find('input[name="psExpiryRange[]"]').map(function() {
+                            return $(this).val();
+                        }).get(),
+                    'c_avg_start_time': $('input[name="c_avg_start_time"]').val(),
+                    'c_avg_end_time': $('input[name="c_avg_end_time"]').val(),
+                    'c_first_d': $('input[name="c_first_d"]').val(),
+                    'c_second_d': $('input[name="c_second_d"]').val(),
+                    'points_over': $('input[name="points_over"]').val(),
+                    'showLongBidVolume': $('input[name="showLongBidVolume"]').is(':checked'),
+                    'showLongAskVolume': $('input[name="showLongAskVolume"]').is(':checked'),
+                    'showShortBidVolume': $('input[name="showShortBidVolume"]').is(':checked'),
+                    'showShortAskVolume': $('input[name="showShortAskVolume"]').is(':checked'),
+                    'selectedTimezone': localStorage.getItem('selectedTimezone'),
+                }
+                $.ajax({
+                    url: '/submit',
+                    type: 'POST',
+                    data: formData,
+                    error: () => {
+                        $('#result').text('Error executing function.');
+                    }
+                });
+            });
+        });
+
+        let sreTab;
+        function startSRECalcs() {
+            // Send an AJAX request to start the calculations
+            $.ajax({
+                url: '/srepositions',
+                method: 'POST',
+                success: () => {
+                    if (!sreTab || sreTab.closed){
+                        sreTab = window.open('/SRE', '_blank');
+                        const checkWindowClosed = setInterval(() => {
+                            if (sreTab && sreTab.closed){
+                                clearInterval(checkWindowClosed); // Stop checking
+                                sreTab = null; // Clear the reference
+                            }
+                        }, 1000);
+                    }
+                    const checkSessionData = setInterval(() => {
+                        $.get('/srepositions/check', (data) => {
+                            if (data.ready) {
+                                // Data is ready, send it to the new tab
+                                console.log("Sending data to SRE Tab")
+                                sreTab.postMessage(data.html, "*");
+                            } else {
+                                console.log("SRE Data not ready yet.");
+                            }
+                        });
+                    }, 10000); // Check every second
+                },
+                error: (a, b, c) => {
+                    console.log(JSON.stringify(c))
+                    console.error('Error starting calculations');
+                }
+            });
+        }
+
+        // Function to handle button click
+        $(document).ready(() => {
+            $('#data-form-sre').on('submit', startSRECalcs);
+        });
+        
+        const openedWindows = {};
+        socket.on('buy_sell_pairs', (data) => {
+            console.log(JSON.stringify(data));
+            const display = {
+                "showLongBidSize": document.getElementById('showLongBidVolume').checked,
+                "showLongAskSize": document.getElementById('showLongAskVolume').checked,
+                "showShortBidSize": document.getElementById('showShortBidVolume').checked,
+                "showShortAskSize": document.getElementById('showShortAskVolume').checked,
+            };
+            Object.keys(data).forEach((usym) => {
+                Object.keys(data[usym]).forEach( (expiryRange) => {
+                    const underlyingPairs = data[usym][expiryRange];
+                    if (underlyingPairs.length > 0) {
+                        let usym_display = JSON.parse(JSON.stringify(display));
+                        usym_display['inputData'] = underlyingPairs;
+                        let newWindow;
+                        let key = usym + ': ' + expiryRange;
+                        if (!openedWindows[key] || openedWindows[key].closed) {
+                            // Open a new tab and store the reference
+                            openedWindows[key] = window.open(`/pairs/${usym}/${expiryRange}`, '_blank');
+                            // Check if the new window is closed
+                            const checkIfClosed = setInterval(() => {
+                                if (openedWindows[key].closed) {
+                                    clearInterval(checkIfClosed); // Stop checking
+                                    openedWindows[key] = null;
+                                }
+                            }, 1000);
+                            openedWindows[key].onload = () => {
+                                openedWindows[key].postMessage(usym_display, "*");
+                            }
+                            console.log(`Writing to pairs and expiry combo ${key}`);
+                        } else {
+                            console.log(`Buy/Sell Pairs: Sending data to existing pairs and expiry combo tab ${key}`);
+                            openedWindows[key].postMessage(usym_display, "*");
+                        }
+                    }
+                })
+            });
+        })
+        let spreadWindow;
+        socket.on('put_spread_pairs', (data) => {
+            if (!spreadWindow || spreadWindow.closed){
+                spreadWindow = window.open('putSpread', '_blank');
+                const checkIfClosed = setInterval(() => {
+                    if (spreadWindow.closed) {
+                        clearInterval(checkIfClosed); // Stop checking
+                        spreadWindow = null;
+                    }
+                }, 1000);
+                spreadWindow.onload = () => {
+                    spreadWindow.postMessage(data, "*");
+                }
+                console.log("Writing to Put Spreads");
+            }else{
+                spreadWindow.postMessage(data, "*");
+                console.log("Put Spreads: Already have a table open, updating existing tab!")
+            }
+        })
+    </script>
+</body>
+</html>

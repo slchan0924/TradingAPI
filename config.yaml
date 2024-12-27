@@ -1,0 +1,31 @@
+settings:
+  RivalOne:
+    port: 50001
+    host: sim-api.rivalsystems.cloud
+  SRE:
+    url_base: https://srm-api.sterlingtradingtech.com/pts-risk
+  ActivOnePlatform:
+    host: aop-ch-NAT.activfinancial.com:9061
+  ActivContentPlatform:
+    host: aop-ch-NAT.activfinancial.com:9061
+    table: 602
+    output_fields: 456;280;362;329
+  General:
+    start_time: "09:00:00"
+    end_time: "17:00:00"
+    run_days: "Mon-Fri"
+credentials:
+  RivalOne:
+    username: kkibbe
+    password: "thou-wordplay-iberian"
+    group: KKIBBE
+  SRE:
+    username: VelFalconAPI
+    password: VelFalAP1!
+    account: VCPS-655-675557-P
+  ActivOnePlatform:
+    username: activ-na
+    password: t769x00sd
+  ActivContentPlatform:
+    username: activ-na
+    password: t769x00sd

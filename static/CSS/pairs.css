@@ -1,0 +1,155 @@
+#put-spread-table, #pairs {
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+#put-spread-table th, #put-spread-table td, #pairs th, #pairs td {
+    border: 1px solid black;
+    padding: 8px;
+    text-align: left;
+}
+
+#put-spread-table th:nth-child(1), #put-spread-table td:nth-child(1) {
+    width: 102px;
+}
+#put-spread-table th:nth-child(2), #put-spread-table td:nth-child(2) {
+    width: 70px;
+}
+#put-spread-table th:nth-child(3), #put-spread-table td:nth-child(3) {
+    width: 56px;
+}
+#put-spread-table th:nth-child(4), #put-spread-table td:nth-child(4) {
+    width: 66px;
+}
+#put-spread-table th:nth-child(5), #put-spread-table td:nth-child(5) {
+    width: 79px;
+}
+#put-spread-table th:nth-child(6), #put-spread-table td:nth-child(6) {
+    width: 85px;
+}
+#put-spread-table th:nth-child(7), #put-spread-table td:nth-child(7) {
+    width: 85px;
+}
+#put-spread-table th:nth-child(8), #put-spread-table td:nth-child(8) {
+    width: 199px;
+}
+#put-spread-table th:nth-child(9), #put-spread-table td:nth-child(9) {
+    width: 199px;
+}
+
+/* Pairs Dimension */
+#pairs th:nth-child(1), #pairs td:nth-child(1) {
+    width: 75px;
+}
+#pairs th:nth-child(2), #pairs td:nth-child(2) {
+    width: 80px;
+}
+#pairs th:nth-child(3), #pairs td:nth-child(3) {
+    width: 75px;
+}
+#pairs th:nth-child(4), #pairs td:nth-child(4) {
+    width: 79px;
+}
+#pairs th:nth-child(5), #pairs td:nth-child(5) {
+    width: 69px;
+}
+#pairs th:nth-child(6), #pairs td:nth-child(6) {
+    width: 70px;
+}
+#pairs th:nth-child(7), #pairs td:nth-child(7) {
+    width: 79px;
+}
+#pairs th:nth-child(8), #pairs td:nth-child(8) {
+    width: 70px;
+}
+#pairs th:nth-child(9), #pairs td:nth-child(9) {
+    width: 71px;
+}
+#pairs th:nth-child(10), #pairs td:nth-child(10) {
+    width: 197px;
+}
+#pairs th:nth-child(11), #pairs td:nth-child(11) {
+    width: 197px;
+}
+#pairs th:nth-child(12), #pairs td:nth-child(12) {
+    width: 90px;
+}
+#pairs th:nth-child(13), #pairs td:nth-child(13) {
+    width: 55px;
+}
+#pairs th:nth-child(14), #pairs td:nth-child(14) {
+    width: 65px;
+}
+#pairs th:nth-child(15), #pairs td:nth-child(15) {
+    width: 75px;
+}
+
+.grey-shade {
+    background-color: lightgrey;
+}
+body {
+    margin: 0;
+    padding: 0;
+}
+.data {
+    border-collapse: collapse;
+    width: 100%;
+}
+.data th, .data td {
+    border: 1px solid black;
+    padding: 8px;
+    text-align: left;
+}
+.data th {
+    background-color: #f2f2f2;
+}
+.input-container {
+    margin-bottom: 10px; /* Space between input fields */
+}
+.pts_over {
+    line-height: 10px;
+    display: flex;
+}
+label {
+    margin-right: 10px; /* Space between label and input */
+    font-weight: bold; /* Make the label bold */
+}
+body {
+    background-color: #FFEFD5; /* Papaya Whip background color */
+    color: #121212;
+    font-family: 'Trebuchet MS', sans-serif; /* Font style */
+    margin: 0;
+    padding: 20px;
+}
+h1, h2, h3 {
+    color: #121212; /* White color for headings */
+}
+#overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent background */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000; /* Ensure it appears above other content */
+}
+.overlay-content {
+    color: white;
+    text-align: center;
+    background: rgba(0, 0, 0, 0.7); /* Darker background for the text */
+    padding: 20px;
+    border-radius: 10px;
+}
+.top-right {
+    position: fixed;
+    z-index: 1000;
+    top: 10px; /* Adjust as needed */
+    right: 10px; /* Adjust as needed */
+    color: #000000;
+    background-color: rgba(255, 255, 255, 0.8); /* Optional: background for better visibility */
+    padding: 5px; /* Optional: padding for aesthetics */
+    border-radius: 5px; /* Optional: rounded corners */
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.3); /* Optional: shadow for depth */
+}

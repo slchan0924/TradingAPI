@@ -1,0 +1,84 @@
+table {
+    border-collapse: collapse;
+    width: auto;
+    min-width: 600px;
+}
+.table-container {
+    display: flex; /* Use flexbox to align tables side by side */
+    justify-content: space-between; /* Space between the tables */
+}
+th, td {
+    border: 1px solid black;
+    padding: 8px;
+    text-align: left;
+    white-space: nowrap;
+}
+h1, h2, h3 {
+    color: #121212; /* White color for headings */
+}
+body {
+    background-color: #D8BFD8; /* Thistle Blue background color */
+    color: #121212;
+    font-family: 'Trebuchet MS', sans-serif; /* Font style */
+    margin: 0;
+    padding: 20px;
+}
+button {
+    margin: 10px 0; /* Spacing for the button */
+    padding: 10px 15px; /* Button padding */
+    background-color: #4CAF50; /* Green background */
+    color: white; /* White text */
+    border: none; /* No borders */
+    cursor: pointer; /* Pointer cursor */
+    display: inline;
+    margin-left: 10px;
+}
+p {
+    line-height: 1.6; /* Improved readability */
+}
+body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: url('https://www.transparenttextures.com/patterns/asfalt-dark.png'); /* Example texture */
+    opacity: 0.1; /* Lighten the texture */
+    z-index: -1; /* Send it to the back */
+}
+#section_positions {
+    overflow-y: auto; /* Enable vertical scrolling */
+    overflow-x: auto; /* Enable horizontal scrolling when needed */
+    max-height: 300px; /* Set your desired max height */
+}
+#overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent background */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000; /* Ensure it appears above other content */
+}
+.overlay-content {
+    color: black;
+    text-align: center;
+    background:#FAB387;
+    padding: 20px;
+    border-radius: 10px;
+}
+.top-right {
+    position: fixed;
+    z-index: 1000;
+    top: 10px; /* Adjust as needed */
+    right: 10px; /* Adjust as needed */
+    color: #000000;
+    background-color: rgba(255, 255, 255, 0.8); /* Optional: background for better visibility */
+    padding: 5px; /* Optional: padding for aesthetics */
+    border-radius: 5px; /* Optional: rounded corners */
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.3); /* Optional: shadow for depth */
+}

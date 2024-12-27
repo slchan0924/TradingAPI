@@ -1,0 +1,70 @@
+#activ-data-table, #put-spread-table {
+    border-collapse: collapse;
+    margin-top: 20px;
+    width: auto;
+}
+#activ-data-table th, #activ-data-table td, #put-spread-table th, #put-spread-table td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+}
+.data {
+    border-collapse: collapse;
+    width: 100%;
+}
+.data th, .data td {
+    border: 1px solid black;
+    padding: 8px;
+    text-align: left;
+}
+.data th {
+    background-color: #f2f2f2;
+}
+.input-container {
+    margin-bottom: 10px; /* Space between input fields */
+}
+.pts_over {
+    line-height: 10px;
+    display: flex;
+}
+label {
+    margin-right: 10px; /* Space between label and input */
+    font-weight: bold; /* Make the label bold */
+}
+body {
+    background-color: #87CEFA; /* Light Sky Blue background color */
+    color: #121212;
+    font-family: 'Trebuchet MS', sans-serif; /* Font style */
+    margin: 0;
+    padding: 20px;
+}
+h1, h2, h3 {
+    color: #121212; /* White color for headings */
+}
+p {
+    line-height: 1.6; /* Improved readability */
+}
+body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: url('https://www.transparenttextures.com/patterns/asfalt-dark.png'); /* Example texture */
+    opacity: 0.1; /* Lighten the texture */
+    z-index: -1; /* Send it to the back */
+}
+.time-display {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    background-color: rgba(255, 255, 255, 0.8);
+    padding: 10px;
+    border-radius: 5px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+#current-time {
+    margin-top: 5px;
+    color: #000000
+}
