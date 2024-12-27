@@ -97,20 +97,20 @@
                 <th>C$</th>
                 <th>C$/DDiff</th>
                 <th>CAvg</th>
-                <th>Sell Bid #</th>
-                <th>Sell Bid</th>
-                <th>Sell Ask</th>
-                <th>Sell Ask #</th>
-                <th>Buy Bid #</th>
-                <th>Buy Bid</th>
-                <th>Buy Ask</th>
-                <th>Buy Ask #</th>
-                <th>Short Leg IceChat</th>
-                <th>Long Leg IceChat</th>
-                <th>Sell-K DTE</th>
-                <th>D-Diff</th>
-                <th>Sell-K %UL</th>
-                <th>Strike Diff</th>
+                <th>Sell-B#</th>
+                <th>Sell-B</th>
+                <th>Sell-A</th>
+                <th>Sell-A#</th>
+                <th>Buy-B#</th>
+                <th>Buy-B</th>
+                <th>Buy-A</th>
+                <th>Buy-A#</th>
+                <th>Sell IceChat</th>
+                <th>Buy IceChat</th>
+                <th>Sell-DTE</th>
+                <th>Diff</th>
+                <th>%UL</th>
+                <th>K-Diff</th>
             </tr>
         </thead>
         <tbody id="pairs-body">
@@ -124,20 +124,20 @@
             "C$",
             "C$/DDiff",
             "CAvg",
-            "Sell Bid #",
-            "Sell Bid",
-            "Sell Ask",
-            "Sell Ask #",
-            "Buy Bid #",
-            "Buy Bid",
-            "Buy Ask",
-            "Buy Ask #",
-            "Short Leg IceChat",
-            "Long Leg IceChat",
-            "Sell-K DTE",
-            "D-Diff",
-            "Sell-K %UL",
-            "Strike Diff",
+            "Sell-B#",
+            "Sell-B",
+            "Sell-A",
+            "Sell-A#",
+            "Buy-B#",
+            "Buy-B",
+            "Buy-A",
+            "Buy-A#",
+            "Sell IceChat",
+            "Buy IceChat",
+            "Sell-DTE",
+            "Diff",
+            "%UL",
+            "K-Diff",
         ]
         const body = document.getElementById("pairs-body");
         const table = document.getElementById("pairs");
@@ -148,7 +148,7 @@
         });
         let currentDate = getCurrentTimeStamp(selectedTimezone, new Date());
         let removedColumns = []; // To keep track of removed columns and their indices
-        let pxCols = ["Buy Bid", "Sell Bid", "Buy Ask", "Sell Ask"];
+        let pxCols = ["Buy-B", "Sell-B", "Buy-A", "Sell-A"];
 
         function removeColumn(colNameToRemove){
             let colIndex = currentHeaders.indexOf(colNameToRemove);
@@ -184,24 +184,24 @@
         }
         function modifyColumns(event){
             if (!event.data.showShortBidSize){
-                removeColumn("Sell Bid #");
+                removeColumn("Sell-B#");
             }else{
-                addColumn("Sell Bid #");
+                addColumn("Sell-B#");
             };
             if (!event.data.showShortAskSize){
-                removeColumn("Sell Ask #");
+                removeColumn("Sell-A#");
             }else{
-                addColumn("Sell Ask #");
+                addColumn("Sell-A#");
             };            
             if (!event.data.showLongBidSize){
-                removeColumn("Buy Bid #");
+                removeColumn("Buy-B#");
             }else{
-                addColumn("Buy Bid #");
+                addColumn("Buy-B#");
             };            
             if (!event.data.showLongAskSize){
-                removeColumn("Buy Ask #");
+                removeColumn("Buy-A#");
             }else{
-                addColumn("Buy Ask #");
+                addColumn("Buy-A#");
             };
         }
 
@@ -209,10 +209,11 @@
             if ('innerHTML' in body){
                 body.innerHTML = "";
             }
+            // Toggle to control whether to show the bid/ask sizes
             modifyColumns(event);
             const pairsData = event.data.inputData;
             pairsData.sort( (a, b) => {
-                return parseFloat(b["C$"])- parseFloat(a["C$"]);
+                return parseFloat(b["C$"]) - parseFloat(a["C$"]);
             })
             pairsData.forEach((pair) => {
                 const tr = document.createElement('tr');

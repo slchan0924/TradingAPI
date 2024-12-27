@@ -19,42 +19,52 @@ import asyncio
 lock = threading.Lock()
 
 # Import from other python scripts
-from activ import SpreadCalculation, option_data, usym_data, usym_map
+from activ import SpreadCalculation, usym_data, usym_map
 from sre import SRERisk
 from sqlite3db import createDatabase
 
 app = Flask(__name__, template_folder="../templates", static_folder="../static")
 socketio = SocketIO(app, async_mode="threading")
 app.secret_key = "kkibbe"  # Required for session management
+input_path = r"..\inputs.json"
+input_path_from_editor = r"inputs.json"
 
 
 def read_input_data():
-    with open("inputs.json", "r") as f:
-        return json.load(f)
+    try:
+        with open(input_path, "r") as f:
+            return json.load(f)
+    except FileNotFoundError:
+        print("test")
+        with open(input_path_from_editor, "r") as f:
+            return json.load(f)
 
 
 def write_data_to_json(data):
-    with open("inputs.json", "w") as f:
-        json.dump(data, f)
+    try:
+        with open(input_path, "w") as f:
+            json.dump(data, f)
+    except FileNotFoundError:
+        with open(input_path_from_editor, "w") as f:
+            json.dump(data, f)
 
+def run_async_task():
+    asyncio.run(spread_calc.subscribe(activ_session))
+
+def run_async_usym_sub():
+    asyncio.run(spread_calc.subscribe_usym(activ_session))
 
 # Create global instances
 sre_risk = SRERisk()
 spread_calc = SpreadCalculation()
 activ_session = spread_calc.connect_to_activ()
 sre_html = ""
-
-
-async def launch_subscription():
-    count = 1
-    while count <= 1:
-        spread_calc.subscribe(activ_session)
-        count += 1
-
-
-def run_async_task():
-    asyncio.run(launch_subscription())
-
+ps_pairs_persist = {}
+buy_sell_pairs_persist = {}
+stop_flag = False
+current_thread = None
+#usym_thread = threading.Thread(target=run_async_usym_sub)
+#usym_thread.start()
 
 # Route Functions
 @app.route("/")
@@ -75,9 +85,8 @@ def home():
 def get_positions():
     @copy_current_request_context
     def sre_run():
-        run_count = 0
         global sre_html
-        while run_count < 10:
+        while True:
             sre_risk.get_positions(usym_data)
             sre_risk.calc_ps_ladder(1, 10, usym_data[usym_map["SPX"]]["Mid"])
             sre_risk.calc_weighted_avg()
@@ -85,7 +94,6 @@ def get_positions():
             sre_risk.calc_mkt_risk()
             sre_html = sre_risk.get_sre_html()
             time.sleep(5)
-            run_count += 1
 
     thread = threading.Thread(target=sre_run, daemon=True)
     thread.start()
@@ -102,71 +110,95 @@ def check_sre_status():
 @app.route("/submit", methods=["POST"])
 def collectdataFromWebsite():
     first_time = True
-    with lock:
-        db = createDatabase()
-        # 1 sell strike only pair with 1 buy strike
-        form_data = {
-            "target_symbols": list(
-                filter(None, request.form.getlist("target_symbols[]"))
-            ),
-            "target_strike_ranges": list(
-                filter(None, request.form.getlist("target_strike_ranges[]"))
-            ),
-            "expiry_combo": list(filter(None, request.form.getlist("expiry_combo[]"))),
-            "ps_ul": list(filter(None, request.form.getlist("ps_ul[]"))),
-            "ps_points_wide": list(
-                filter(None, request.form.getlist("ps_points_wide[]"))
-            ),
-            "ps_expiry_range": list(
-                filter(None, request.form.getlist("ps_expiry_range[]"))
-            ),
-            "points_over": request.form.get("points_over"),
-            "showLongBidVolume": request.form.get("showLongBidVolume"),
-            "showLongAskVolume": request.form.get("showLongAskVolume"),
-            "showShortBidVolume": request.form.get("showShortBidVolume"),
-            "showShortAskVolume": request.form.get("showShortAskVolume"),
-            "c_first_d": request.form.get("c_first_d"),
-            "c_second_d": request.form.get("c_second_d"),
-            "c_avg_start_time": request.form.get("c_avg_start_time") or "16:00",
-            "c_avg_end_time": request.form.get("c_avg_end_time") or "16:30",
-            "selectedTimezone": request.form.get("selectedTimezone") or "Asia/Tokyo",
-        }
-        write_data_to_json(form_data)
-        session["form_data"] = form_data
-        spread_calc.get_symbols(
-            form_data["target_symbols"],
-            form_data["expiry_combo"],
-            ["SPX", "SPXW"],
-            form_data["ps_expiry_range"],
-        )
+    thread_alive = False
+    global current_thread
+    # 1 sell strike only pair with 1 buy strike
+    form_data = {
+        "target_symbols": list(
+            filter(None, request.form.getlist("target_symbols[]"))
+        ),
+        "target_strike_ranges": list(
+            filter(None, request.form.getlist("target_strike_ranges[]"))
+        ),
+        "expiry_combo": list(filter(None, request.form.getlist("expiry_combo[]"))),
+        "ps_ul": list(filter(None, request.form.getlist("ps_ul[]"))),
+        "ps_points_wide": list(
+            filter(None, request.form.getlist("ps_points_wide[]"))
+        ),
+        "ps_expiry_range": list(
+            filter(None, request.form.getlist("ps_expiry_range[]"))
+        ),
+        "points_over": request.form.get("points_over"),
+        "showLongBidVolume": request.form.get("showLongBidVolume"),
+        "showLongAskVolume": request.form.get("showLongAskVolume"),
+        "showShortBidVolume": request.form.get("showShortBidVolume"),
+        "showShortAskVolume": request.form.get("showShortAskVolume"),
+        "c_first_d": request.form.get("c_first_d"),
+        "c_second_d": request.form.get("c_second_d"),
+        "c_avg_start_time": request.form.get("c_avg_start_time") or "16:00",
+        "c_avg_end_time": request.form.get("c_avg_end_time") or "16:30",
+        "selectedTimezone": request.form.get("selectedTimezone") or "Asia/Tokyo",
+    }
+    write_data_to_json(form_data)
+    session["form_data"] = form_data
+    spread_calc.get_symbols(
+        form_data["target_symbols"],
+        form_data["expiry_combo"],
+        ["SPX", "SPXW"],
+        form_data["ps_expiry_range"],
+    )
 
-        # update viewer will only be invoked if input params are changed
-        re_subscribe = spread_calc.invoke_update_viewer()
-        if re_subscribe or first_time:
-            first_time = True
+    # update viewer will only be invoked if input params are changed
+    if current_thread:
+        if current_thread.is_alive():
+            thread_alive = True
+
+    re_subscribe = spread_calc.invoke_update_viewer()
+    if re_subscribe or first_time:
+        first_time = True
+        if not thread_alive:
+            # Don't resub if we just reclick process inputs!
             thread = threading.Thread(target=run_async_task)
             thread.start()
 
-        tz_selected = pytz.timezone(form_data["selectedTimezone"])
-        current_time = datetime.now(tz_selected)
-        db.cleanup(current_time)
-        c_avg_start = tz_selected.localize(
-            datetime.strptime(form_data["c_avg_start_time"], "%H:%M").replace(
-                year=current_time.year, month=current_time.month, day=current_time.day
-            )
-        )
-        c_avg_end = tz_selected.localize(
-            datetime.strptime(form_data["c_avg_end_time"], "%H:%M").replace(
-                year=current_time.year, month=current_time.month, day=current_time.day
-            )
-        )
+    if thread_alive:
+        global stop_flag
+        stop_flag = True  # Signal the current thread to stop
+        current_thread.join()  # Wait for it to finish
+        
+    tz_selected = pytz.timezone(form_data["selectedTimezone"])
+    current_time = datetime.now(tz_selected)
 
-        run_count = 0
-        spread_start_run_time = datetime.now(tz_selected)
-        pairs_start_run_time = datetime.now(tz_selected)
-        while run_count < 20:
+    c_avg_start = tz_selected.localize(
+        datetime.strptime(form_data["c_avg_start_time"], "%H:%M").replace(
+            year=current_time.year, month=current_time.month, day=current_time.day
+        )
+    )
+    c_avg_end = tz_selected.localize(
+        datetime.strptime(form_data["c_avg_end_time"], "%H:%M").replace(
+            year=current_time.year, month=current_time.month, day=current_time.day
+        )
+    )
+
+    spread_start_run_time = datetime.now(tz_selected)
+    pairs_start_run_time = datetime.now(tz_selected)
+    current_thread = threading.Thread(target=process_input, args=(form_data, tz_selected, c_avg_start, c_avg_end, current_time, spread_start_run_time, pairs_start_run_time))
+    current_thread.start()
+    #process_input(form_data, tz_selected, c_avg_start, c_avg_end, current_time, spread_start_run_time, pairs_start_run_time)
+        
+    return redirect(url_for("home"))
+
+def process_input(form_data: dict, tz_selected, c_avg_start: datetime, c_avg_end: datetime, current_time: datetime, spread_start_run_time: datetime, pairs_start_run_time: datetime):
+    global stop_flag, ps_pairs_persist, buy_sell_pairs_persist
+    stop_flag = False
+    with lock:
+        db = createDatabase()
+        while not stop_flag:
+            db.cleanup(current_time)
             c_avg = db.get_rolling_c_dollar_average(10)
+            # print("C$ Average:", c_avg)
             ps_mid_avg = db.get_rolling_mid_average(10)
+            # print("PS Mid Average:", ps_mid_avg)
             try:
                 put_spread_pairs = spread_calc.get_put_spread_pairs(
                     form_data["ps_ul"],
@@ -183,7 +215,7 @@ def collectdataFromWebsite():
                     print("Inserting Mid Data")
                     db.insertMidData(put_spread_pairs, spread_current_run_time)
                     spread_start_run_time = spread_current_run_time
-                session["put_spread_pairs"] = put_spread_pairs
+                ps_pairs_persist = put_spread_pairs
                 socketio.emit("put_spread_pairs", put_spread_pairs)
             except Exception as error:
                 print("An exception occurred while getting put spread:", error)
@@ -204,20 +236,16 @@ def collectdataFromWebsite():
                     print("Inserting C$ Data")
                     db.insertCDollarData(buy_sell_pairs, pairs_current_run_time)
                     pairs_start_run_time = pairs_current_run_time
-                session["buy_sell_pairs"] = buy_sell_pairs
+                buy_sell_pairs_persist = buy_sell_pairs
                 socketio.emit("buy_sell_pairs", buy_sell_pairs)
             except Exception as error:
                 print("An exception occurred while getting buy/sell pairs:", error)
-            time.sleep(5)
-            run_count += 1
-    return redirect(url_for("home"))
-
+            time.sleep(1)
 
 @app.route("/pairs/<usym>/<expiry_combo>")
 def pairs(usym, expiry_combo):
-    buy_sell_pairs = session.get("buy_sell_pairs", "{}")
-    if expiry_combo in buy_sell_pairs[usym]:
-        usym_pairs = buy_sell_pairs[usym][expiry_combo]
+    if expiry_combo in buy_sell_pairs_persist[usym]:
+        usym_pairs = buy_sell_pairs_persist[usym][expiry_combo]
         return render_template(
             "pairs.html",
             usym=usym,
@@ -228,8 +256,7 @@ def pairs(usym, expiry_combo):
 
 @app.route("/putSpread")
 def spread():
-    put_spread_pairs = session.get("put_spread_pairs", "{}")
-    return render_template("spread.html", pairs=json.dumps(put_spread_pairs))
+    return render_template("spread.html", pairs=json.dumps(ps_pairs_persist))
 
 
 @app.route("/SRE")
@@ -238,5 +265,4 @@ def SRE():
 
 
 if __name__ == "__main__":
-    # threading.Thread(target=launch_subscription, daemon=True).start()
     socketio.run(app, allow_unsafe_werkzeug=True)

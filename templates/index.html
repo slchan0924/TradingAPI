@@ -203,7 +203,6 @@
                     'showShortAskVolume': $('input[name="showShortAskVolume"]').is(':checked'),
                     'selectedTimezone': localStorage.getItem('selectedTimezone'),
                 }
-                console.log(JSON.stringify(formData));
                 $.ajax({
                     url: '/submit',
                     type: 'POST',

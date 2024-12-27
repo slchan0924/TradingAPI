@@ -1,15 +1,19 @@
 from datetime import datetime, timedelta
 import sqlite3
-import random
 import time
 import pandas as pd
+import os
 
+original_directory = os.path.dirname(os.getcwd())
 rebuild_db = False
 
 
 class createDatabase:
     def __init__(self):
-        db_con_avg = sqlite3.connect("api_data_store.db")
+        try:
+            db_con_avg = sqlite3.connect(os.path.join(original_directory, "Database", "api_data_store.db"))
+        except sqlite3.OperationalError:
+            db_con_avg = sqlite3.connect(os.path.join(".", "Database", "api_data_store.db"))
         cur_avg = db_con_avg.cursor()
         cur_avg.execute(
             """
@@ -23,7 +27,11 @@ class createDatabase:
         """
         )
 
-        db_con_history = sqlite3.connect("eod_cdollar.db")
+        try:
+            db_con_history = sqlite3.connect(os.path.join(original_directory, "Database", "eod_cdollar.db"))
+        except sqlite3.OperationalError:
+            db_con_history = sqlite3.connect(os.path.join(".", "Database", "eod_cdollar.db"))
+            
         cur_eod = db_con_history.cursor()
         cur_eod.execute(
             """

@@ -13,7 +13,52 @@ def format_number(x):
 
 # Global Variables
 current_time_in_NY = datetime.now(pytz.timezone("America/New_York"))
-
+test_mode = True
+test_risk_ladder = {
+    "1%Par/25%": -174375.41,
+    "-8%Par/50%": -6020574.6899999995,
+    "-3%Par/0%": 208138.75,
+    "-6%Par/0%": 1267871.8099999998,
+    "-8%Par/25%": -2010753.1399999997,
+    "-2%Par/25%": -471212.02999999997,
+    "-5%Par/25%": -581183.4099999999,
+    "-2%Par/0%": 49339.41,
+    "-6%Par/25%": -759225.4499999997,
+    "-4%Par/50%": -2678290.5,
+    "0%Par/25%": -266586.64,
+    "-5%Par/50%": -3206767.67,
+    "-1%Par/25%": -372182.68000000005,
+    "-8%Par/0%": 973722.2499999995,
+    "1%Par/50%": -851855.46,
+    "0%Par/50%": -1130024.7,
+    "-7%Par/25%": -1207628.5899999999,
+    "-4%Par/25%": -546158.1500000001,
+    "-4%Par/0%": 530771.3999999999,
+    "-7%Par/0%": 1307154.1799999997,
+    "-3%Par/50%": -2235357.34,
+    "-6%Par/50%": -3896241.24,
+    "-1%Par/0%": 6662.32,
+    "-7%Par/50%": -4817916.07,
+    "-3%Par/25%": -530195.0599999999,
+    "-5%Par/0%": 947623.3599999999,
+    "1%Par/0%": 21616.7,
+    "-1%Par/50%": -1458612.04,
+    "-2%Par/50%": -1832487.88,
+    "0%Par/0%": 10065.21,
+}
+test_extreme_risk_ladder = {
+    "-40%Par/25%": 33186835.599999845,
+    "-25%Par/50%": 15855971.23999998,
+    "-25%Par/25%": 20147711.859999985,
+    "-40%Par/50%": 37186835.599999845,
+}
+test_positions = [
+    {"symbol": ".SPY 241230P475000", "pos": 1000},
+    {"symbol": ".SPXW 241230P4890000", "pos": -500},
+    {"symbol": ".SPXW 241230P4900000", "pos": 1000},
+    {"symbol": ".SPY 241231P480000", "pos": 400},
+    {"symbol": ".SPXW 241231P5435000", "pos": 1000},
+]
 
 def construct_risk_shocks(
     vol_min: int, vol_max: int, vol_incr: int, und_min: int, und_max: int, und_incr: int
@@ -149,14 +194,7 @@ class SRERisk(createConnection):
                 },
             )
         if len(positions) == 0:
-            # mock positions
-            positions = [
-                {"symbol": ".SPY 241124P475000", "pos": 1000},
-                {"symbol": ".SPXW 241124P4890000", "pos": -500},
-                {"symbol": ".SPXW 241124P4900000", "pos": 1000},
-                {"symbol": ".SPY 241127P480000", "pos": 400},
-                {"symbol": ".SPXW 241127P5435000", "pos": 1000},
-            ]
+            positions = test_positions
         else:
             positions = positions[0]["positions"]
 
@@ -346,49 +384,19 @@ class SRERisk(createConnection):
         normal_risk_strings = construct_risk_shocks(0, 50, 25, -8, 1, 1)
         risk_ladder = self.get_market_risk(normal_risk_strings)
         if not risk_ladder:
-            risk_ladder = {
-                "1%Par/25%": -174375.41,
-                "-8%Par/50%": -6020574.6899999995,
-                "-3%Par/0%": 208138.75,
-                "-6%Par/0%": 1267871.8099999998,
-                "-8%Par/25%": -2010753.1399999997,
-                "-2%Par/25%": -471212.02999999997,
-                "-5%Par/25%": -581183.4099999999,
-                "-2%Par/0%": 49339.41,
-                "-6%Par/25%": -759225.4499999997,
-                "-4%Par/50%": -2678290.5,
-                "0%Par/25%": -266586.64,
-                "-5%Par/50%": -3206767.67,
-                "-1%Par/25%": -372182.68000000005,
-                "-8%Par/0%": 973722.2499999995,
-                "1%Par/50%": -851855.46,
-                "0%Par/50%": -1130024.7,
-                "-7%Par/25%": -1207628.5899999999,
-                "-4%Par/25%": -546158.1500000001,
-                "-4%Par/0%": 530771.3999999999,
-                "-7%Par/0%": 1307154.1799999997,
-                "-3%Par/50%": -2235357.34,
-                "-6%Par/50%": -3896241.24,
-                "-1%Par/0%": 6662.32,
-                "-7%Par/50%": -4817916.07,
-                "-3%Par/25%": -530195.0599999999,
-                "-5%Par/0%": 947623.3599999999,
-                "1%Par/0%": 21616.7,
-                "-1%Par/50%": -1458612.04,
-                "-2%Par/50%": -1832487.88,
-                "0%Par/0%": 10065.21,
-            }
+            if test_mode:
+                risk_ladder = test_risk_ladder
+            else:
+                risk_ladder = {key: 0 for key in test_risk_ladder}
         self.risk_ladder_df = construct_risk_shocks_df(risk_ladder)
 
         extreme_risk_strings = construct_risk_extreme_shocks([25, 50], [-40, -25])
         extreme_risk_ladder = self.get_market_risk(extreme_risk_strings)
         if not extreme_risk_ladder:
-            extreme_risk_ladder = {
-                "-40%Par/25%": 33186835.599999845,
-                "-25%Par/50%": 15855971.23999998,
-                "-25%Par/25%": 20147711.859999985,
-                "-40%Par/50%": 37186835.599999845,
-            }
+            if test_mode:
+                extreme_risk_ladder = test_extreme_risk_ladder
+            else:
+                extreme_risk_ladder = {key: 0 for key in test_extreme_risk_ladder}
 
         data_2 = {}
         for key, value in extreme_risk_ladder.items():

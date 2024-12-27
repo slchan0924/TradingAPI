@@ -7,7 +7,6 @@ import re
 import numpy as np
 from activfinancial import *
 from activfinancial.constants import *
-import activ_utils
 from start_connection import createConnection
 import time
 import shutil
@@ -36,7 +35,12 @@ usym_data = {
     "SPY.Q": {"Underlying": "SPY", "Bid": 0, "Ask": 0, "Mid": 597},
     "=SPX.WI": {"Underlying": "SPX", "Bid": 5950, "Ask": 5956, "Mid": 5953},
 }
-
+debug_mode = False
+original_directory = os.path.dirname(os.getcwd())
+snapshot_path = os.path.join(original_directory, "SnapshotViewer", "opra_snapshot.txt")
+snapshot_path_editor = os.path.join(".", "SnapshotViewer", "opra_snapshot.txt")
+snapshot_path_copy = os.path.join(original_directory, "SnapshotViewer", "opra_snapshot_copy.txt")
+snapshot_path_copy_editor = os.path.join(".", "SnapshotViewer", "opra_snapshot_copy.txt")
 
 def format_number(x):
     return f"{x:,}"
@@ -153,6 +157,7 @@ class SubscriptionHandler:
                 usym_data[msg.symbol]["AskTime"] = askTime
             if check_string(bidTime):
                 usym_data[msg.symbol]["BidTime"] = bidTime
+            # print("{}: {}".format(msg.symbol, usym_data[msg.symbol]))    
         else:
             underlying, sym = msg.symbol.split("/")
             usym = "SPX" if underlying == "SPXW" else underlying
@@ -316,19 +321,29 @@ class SpreadCalculation(createConnection):
             self.target_symbols = target_symbols
 
     def subscribe(self, activ_session: Session):
-        symbols_to_subscribe = self.symbols_all.tolist()
+        symbols_to_subscribe = self.symbols_all.tolist() if hasattr(self, "symbols_all") else []
         for key in usym_data.keys():
             symbols_to_subscribe.append(key)
-        print("Subscring to symbols.")
+        print("Subscring to Symbols.")
+        self.subscribe_to_symbols(symbols_to_subscribe, activ_session)
+
+    def subscribe_usym(self, activ_session: Session):
+        symbols_to_subscribe = []
+        for key in usym_data.keys():
+            symbols_to_subscribe.append(key)
+        print("Subscring to Underlying symbols.")
         self.subscribe_to_symbols(symbols_to_subscribe, activ_session)
 
     def invoke_update_viewer(self):
-        original_directory = os.getcwd()
         # should call the ACP Update Viewer, and write to a txt file
-        batch_file_path = os.path.join(".", "SnapshotViewer", "runSnapshot.bat")
+        batch_file_path = os.path.join(original_directory, "SnapshotViewer", "runSnapshot.bat")
         # Read the contents of the batch file
-        with open(batch_file_path, "r") as file:
-            content = file.read()
+        try:
+            with open(batch_file_path, "r") as file:
+                content = file.read()
+        except FileNotFoundError:
+            with open(os.path.join(".", "SnapshotViewer", "runSnapshot.bat"), "r") as file:
+                content = file.read()
 
         # Use regex to find and replace the parameter after -s
         match = re.search(r"(-s\s+)(\S+)", content)
@@ -353,10 +368,16 @@ class SpreadCalculation(createConnection):
                 # -f: Column fields
                 # -s: symbols
                 # -o: output file
-                shutil.copy(
-                    "./SnapshotViewer/opra_snapshot.txt",
-                    "./SnapshotViewer/opra_snapshot_copy.txt",
-                )
+                try:
+                    shutil.copy(
+                        snapshot_path,
+                        snapshot_path_copy
+                    )
+                except FileNotFoundError:
+                    shutil.copy(
+                        snapshot_path_editor,
+                        snapshot_path_copy_editor
+                    )
 
                 batch_file_directory = os.path.dirname(batch_file_path)
                 os.chdir(batch_file_directory)
@@ -368,9 +389,14 @@ class SpreadCalculation(createConnection):
 
     def read_activ_strikes(self):
         symbols_to_sub = []
-        option_symbols = pd.read_csv(
-            "./SnapshotViewer/opra_snapshot.txt", delim_whitespace=True
-        )
+        try:
+            option_symbols = pd.read_csv(
+                snapshot_path, delim_whitespace=True
+            )
+        except FileNotFoundError:
+            option_symbols = pd.read_csv(
+                snapshot_path_editor, delim_whitespace=True
+            )
         # filter out 3rd Week for SPX symbols
         option_symbols["ExpirationDate"] = pd.to_datetime(
             option_symbols["ExpirationDate"]
@@ -396,9 +422,6 @@ class SpreadCalculation(createConnection):
                 & (option_symbols["StrikePrice"] / mid_price > 0.8)
                 & (option_symbols["StrikePrice"] <= mid_price)
             ]
-            # option_symbols_df[key]["ExpirationDate"] = pd.to_datetime(
-            #    option_symbols_df[key]["ExpirationDate"]
-            # )
             symbols_to_sub = np.concatenate(
                 (symbols_to_sub, option_symbols_df[key]["Symbol"].to_numpy().flatten())
             )
@@ -470,14 +493,15 @@ class SpreadCalculation(createConnection):
                                 # only append when we can find 2 separate symbols!
                                 if closest_upper != closest_lower:
                                     # also need to append to an array of pairs!
-                                    print(
-                                        "Upper Symbol: {}, Strike: {}; Lower Symbol: {}, Strike: {}".format(
-                                            symbol + "/" + closest_upper,
-                                            closest_upper_strike,
-                                            symbol + "/" + closest_lower,
-                                            closest_lower_strike,
+                                    if debug_mode:
+                                        print(
+                                            "Upper Symbol: {}, Strike: {}; Lower Symbol: {}, Strike: {}".format(
+                                                symbol + "/" + closest_upper,
+                                                closest_upper_strike,
+                                                symbol + "/" + closest_lower,
+                                                closest_lower_strike,
+                                            )
                                         )
-                                    )
                                     if (
                                         closest_lower in option_data["SPX"]
                                         and closest_upper in option_data["SPX"]
@@ -512,7 +536,7 @@ class SpreadCalculation(createConnection):
                                                     + "-"
                                                     + buy_strike["Symbol"]
                                                 ],
-                                                3,
+                                                0,
                                             )
                                         else:
                                             c_avg = round(sell_mid - buy_mid, 3)
@@ -589,11 +613,12 @@ class SpreadCalculation(createConnection):
                 lower_strike, upper_strike = map(
                     lambda x: float(x) / 100 * usym_price, strike_range[idx].split("-")
                 )
-                print(
-                    "Query Range for {}: {} - {}".format(
-                        symbol, str(lower_strike), str(upper_strike)
+                if debug_mode:
+                    print(
+                        "Query Range for {}: {} - {}".format(
+                            symbol, str(lower_strike), str(upper_strike)
+                        )
                     )
-                )
                 for expiry_range in expiry_ranges:
                     buy_sell_pairs[symbol][expiry_range] = []
                     sell_date, buy_date = map(
@@ -649,6 +674,7 @@ class SpreadCalculation(createConnection):
                             )[1]
                             buy_strike_symbol = closest_buy_strike.split("/")[1]
                             if (
+                                symbol in option_data and buy_symbol in option_data and
                                 sell_strike_symbol in option_data[symbol]
                                 and buy_strike_symbol in option_data[buy_symbol]
                             ):
@@ -659,6 +685,7 @@ class SpreadCalculation(createConnection):
                                     c_average,
                                 )
                                 if c_dollar_result is not None:
+                                    # print(c_dollar_result)
                                     buy_sell_pairs[symbol][expiry_range].append(
                                         c_dollar_result
                                     )
@@ -697,7 +724,7 @@ class SpreadCalculation(createConnection):
             if sell_strike["Symbol"] + "-" + buy_strike["Symbol"] in c_average:
                 c_avg = format_number(
                     round(
-                        c_average[sell_strike["Symbol"] + "-" + buy_strike["Symbol"]], 2
+                        c_average[sell_strike["Symbol"] + "-" + buy_strike["Symbol"]]
                     )
                 )
             else:
@@ -707,25 +734,25 @@ class SpreadCalculation(createConnection):
                 "C$": format_number(round(c_dollar)),
                 "C$/DDiff": format_number(round(c_dollar_ddif)),
                 "CAvg": c_avg,
-                "Sell-K DTE": (sell_dte - current_time_in_NY.replace(tzinfo=None)).days,
-                "D-Diff": (sell_dte - buy_dte).days,
-                "Sell-K %UL": round(sell_strike["Strike"] / sell_u_price * 100, 2),
-                "Strike Diff": (
+                "Sell-DTE": (sell_dte - current_time_in_NY.replace(tzinfo=None)).days,
+                "Diff": (sell_dte - buy_dte).days,
+                "%UL": round(sell_strike["Strike"] / sell_u_price * 100, 2),
+                "K-Diff": (
                     round(buy_strike["Strike"] - sell_strike["Strike"] * 10)
                     if sell_usym == "SPY"
                     else round(buy_strike["Strike"] - sell_strike["Strike"])
                 ),
                 "Sell Symbol": sell_strike["Symbol"],
                 "Buy Symbol": buy_strike["Symbol"],
-                "Sell Bid": sell_strike["Bid"],
-                "Sell Bid #": sell_strike["BidSize"],
-                "Sell Ask": sell_strike["Ask"],
-                "Sell Ask #": sell_strike["AskSize"],
-                "Buy Bid": buy_strike["Bid"],
-                "Buy Bid #": buy_strike["BidSize"],
-                "Buy Ask": buy_strike["Ask"],
-                "Buy Ask #": buy_strike["AskSize"],
-                "Short Leg IceChat": (
+                "Sell-B": sell_strike["Bid"],
+                "Sell-B#": sell_strike["BidSize"],
+                "Sell-A": sell_strike["Ask"],
+                "Sell-A#": sell_strike["AskSize"],
+                "Buy-B": buy_strike["Bid"],
+                "Buy-B#": buy_strike["BidSize"],
+                "Buy-A": buy_strike["Ask"],
+                "Buy-A#": buy_strike["AskSize"],
+                "Sell IceChat": (
                     sell_usym
                     + " "
                     + sell_dte.strftime("%b %d")
@@ -735,7 +762,7 @@ class SpreadCalculation(createConnection):
                     if sell_strike["OptionType"] == "P"
                     else " calls"
                 ),
-                "Long Leg IceChat": (
+                "Buy IceChat": (
                     buy_usym
                     + " "
                     + buy_dte.strftime("%b %d")
@@ -750,12 +777,11 @@ class SpreadCalculation(createConnection):
 
 if __name__ == "__main__":
     sc = SpreadCalculation()
-    # c.subscribe_to_symbols(["QQQ/MOGHH.O", "QQQ/MaGkd.O"], session)
-    # session.query_subscribe(DATA_SOURCE_ACTIV, "symbol=QQQ/MOGHH.O", SubscriptionHandler())
     sc.get_symbols(["SPY", "SPX", "QQQ"], ["10,3", "11,4"], "SPX", ["4,5"])
     sc.invoke_update_viewer()
     sesh = sc.connect_to_activ()
     sc.read_activ_strikes()
     sc.subscribe(sesh)
+    sc.subscribe_usym(sesh)
     # sc.get_put_spread_pairs([97, 96], [50, 100], ["7,8", "7,8"])
     # sc.get_buy_sell_pairs(["SPY", "SPX", "QQQ"], ["82-86", "82-86", "82-86"], ["10,4"], 50)
