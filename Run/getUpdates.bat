@@ -15,4 +15,6 @@ REM Apply the stashed changes
 git stash pop
 
 echo Changes have been fetched and pulled from the branch: %CURRENT_BRANCH%
+
+call installPackages.bat
 pause
