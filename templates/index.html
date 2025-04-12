@@ -127,6 +127,12 @@
             <input type="number" name="points_over" value="{{ form_data.get('points_over', '') }}">
         </div>
     </br>
+        <!-- Points Over -->
+        <div class="contractsToExecute" style="text-align: left">
+            <h3>Contracts to Buy/Sell</h3>
+            <input type="number" name="contractsToExecute" value="{{ form_data.get('contractsToExecute', '') }}">
+        </div>
+    </br>
     <div class="section" style="text-align: left">
         <h3>Output Configurations</h3>
         <label for="showLongBidVolume">Show Long Bid #</label>
@@ -143,11 +149,16 @@
     <div id="result"></div>
     </form>
     </br>
-
-    <form id="data-form-sre" action="/srepositions" method="post">
+    <form id="data-form-silexx" action="/silexxPositions" method="post">
+        <h2>Positions</h2>
+        <button type="submit" id="srepositions">Get Positions</button>
+    </form>
+    <!--
+        <form id="data-form-sre" action="/srepositions" method="post">
         <h2>Get SRE Data</h2>
         <button type="submit" id="srepositions">Get SRE Positions</button>
-    </form>
+        </form>
+    -->
 
     <script>
         function addRow(tableId, colNames) {
@@ -197,6 +208,7 @@
                     'c_first_d': $('input[name="c_first_d"]').val(),
                     'c_second_d': $('input[name="c_second_d"]').val(),
                     'points_over': $('input[name="points_over"]').val(),
+                    'contractsToExecute': $('input[name="contractsToExecute"]').val(),
                     'showLongBidVolume': $('input[name="showLongBidVolume"]').is(':checked'),
                     'showLongAskVolume': $('input[name="showLongAskVolume"]').is(':checked'),
                     'showShortBidVolume': $('input[name="showShortBidVolume"]').is(':checked'),
@@ -214,6 +226,46 @@
             });
         });
 
+        let silexxTab;
+        function getSilexx() {
+            $.ajax({
+                url: '/silexxPositions',
+                type: 'POST',
+                success: () => {
+                    if (!silexxTab || silexxTab.closed){
+                        silexxTab = window.open('/Silexx', '_blank');
+                        const checkWindowClosed = setInterval(() => {
+                            if (silexxTab && silexxTab.closed){
+                                clearInterval(checkWindowClosed); // Stop checking
+                                silexxTab = null; // Clear the reference
+                            }
+                        }, 1000);
+                    }
+                    const checkSessionData = setInterval(() => {
+                        $.get('/silexx/check', (data) => {
+                            if (data.ready) {
+                                // Data is ready, send it to the new tab
+                                console.log("Sending data to Silexx Tab")
+                                silexxTab.postMessage(data.html, "*");
+                            } else {
+                                console.log("Data not ready yet.");
+                            }
+                        });
+                    }, 10000); // Check every second
+                },
+                error: (a, b, c) => {
+                    console.log(JSON.stringify(c))
+                    console.error('Error Getting Positions');
+                }
+            });
+            event.preventDefault();
+        }
+
+        $(document).ready(() => {
+            $('#data-form-silexx').on('submit', getSilexx);
+        });
+
+        /*
         let sreTab;
         function startSRECalcs() {
             // Send an AJAX request to start the calculations
@@ -253,6 +305,7 @@
         $(document).ready(() => {
             $('#data-form-sre').on('submit', startSRECalcs);
         });
+        */
         
         const openedWindows = {};
         socket.on('buy_sell_pairs', (data) => {
@@ -269,6 +322,8 @@
                     if (underlyingPairs.length > 0) {
                         let usym_display = JSON.parse(JSON.stringify(display));
                         usym_display['inputData'] = underlyingPairs;
+                        usym_display['usym'] = usym;
+                        usym_display['quantity'] = document.getElementById('contractsToExecute');
                         let newWindow;
                         let key = usym + ': ' + expiryRange;
                         if (!openedWindows[key] || openedWindows[key].closed) {
@@ -295,21 +350,23 @@
         })
         let spreadWindow;
         socket.on('put_spread_pairs', (data) => {
-            if (!spreadWindow || spreadWindow.closed){
-                spreadWindow = window.open('putSpread', '_blank');
-                const checkIfClosed = setInterval(() => {
-                    if (spreadWindow.closed) {
-                        clearInterval(checkIfClosed); // Stop checking
-                        spreadWindow = null;
+            if (data.length > 0){
+                if (!spreadWindow || spreadWindow.closed){
+                    spreadWindow = window.open('putSpread', '_blank');
+                    const checkIfClosed = setInterval(() => {
+                        if (spreadWindow.closed) {
+                            clearInterval(checkIfClosed); // Stop checking
+                            spreadWindow = null;
+                        }
+                    }, 1000);
+                    spreadWindow.onload = () => {
+                        spreadWindow.postMessage(data, "*");
                     }
-                }, 1000);
-                spreadWindow.onload = () => {
+                    console.log("Writing to Put Spreads");
+                }else{
                     spreadWindow.postMessage(data, "*");
+                    console.log("Put Spreads: Already have a table open, updating existing tab!")
                 }
-                console.log("Writing to Put Spreads");
-            }else{
-                spreadWindow.postMessage(data, "*");
-                console.log("Put Spreads: Already have a table open, updating existing tab!")
             }
         })
     </script>

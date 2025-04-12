@@ -1,6 +1,6 @@
 @echo off
 cd "..\Python"
-start cmd /k "python launcher.py"
+start cmd /k "py launcher.py"
 
 rem Wait for the Flask server to start
 setlocal enabledelayedexpansion

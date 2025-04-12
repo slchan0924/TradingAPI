@@ -57,8 +57,13 @@ test_positions = [
     {"symbol": ".SPXW 241230P4890000", "pos": -500},
     {"symbol": ".SPXW 241230P4900000", "pos": 1000},
     {"symbol": ".SPY 241231P480000", "pos": 400},
-    {"symbol": ".SPXW 241231P5435000", "pos": 1000},
+    {"symbol": ".SPXW 241231P5735000", "pos": 1000},
+    {"symbol": ".SPXW 250103P5735000", "pos": -1000},
+    {"symbol": ".QQQ 241231P492000", "pos": 4000},
+    {"symbol": ".QQQ 250103P542000", "pos": -1000},
 ]
+
+custom_order_usym = ["SPY", "SPXW", "SPX", "QQQ"]
 
 def construct_risk_shocks(
     vol_min: int, vol_max: int, vol_incr: int, und_min: int, und_max: int, und_incr: int
@@ -216,9 +221,12 @@ class SRERisk(createConnection):
             position_data["Lots"] = position["pos"]
             position_data["Strike"] = round(int(data[7:]) / 1000)
             underlyingPrice = strike_prices[usym_map[usym[1:4]]]["Mid"]
-            position_data["%UL"] = round(
-                position_data["Strike"] / underlyingPrice * 100, 2
-            )
+            if underlyingPrice != 0:
+                position_data["%UL"] = round(
+                    position_data["Strike"] / underlyingPrice * 100, 2
+                )
+            else:
+                position_data["%UL"] = 0
             position_data["P/C"] = data[6]
             position_data["IceChat String"] = (
                 str(position_data["Lots"])
@@ -238,7 +246,7 @@ class SRERisk(createConnection):
                     position_data["IceChat String"] + " calls"
                 )
             position_data["Symbol"] = position["symbol"]
-
+            position_data["Business DTE"] = pd.bdate_range(start=current_time_in_NY.date(), end=expiry.date()).size
             eligible_positions.append(position)
             position_result_list.append(position_data)
 
@@ -254,8 +262,29 @@ class SRERisk(createConnection):
                     "IceChat String",
                     "P/C",
                     "Symbol",
+                    "Business DTE",
                 ]
-            ].sort_values(by=["DTE"])
+            ]
+            
+            positions_df_non_ps = positions_df[positions_df["%UL"] < 93].copy()  # Create a copy of the filtered DataFrame
+            positions_df_non_ps.loc[:, "Underlying"] = pd.Categorical(positions_df_non_ps["Underlying"], custom_order_usym, ordered=True)  # Use .loc for assignment
+            positions_df_non_ps = positions_df_non_ps.sort_values(by=["Underlying", "DTE", "Strike"], ascending=[False, False, False])
+
+            # List to hold the new rows
+            new_rows = []
+            # Loop through the DataFrame
+            for index, row in positions_df_non_ps.iterrows():
+                new_rows.append(row.to_dict())  # Append the current row
+                empty_row = {col: None for col in positions_df_non_ps.columns}
+                new_rows.append(empty_row)  # Append the empty row
+
+            # Create a new DataFrame from the new rows
+            positions_df_non_ps = pd.DataFrame(new_rows)
+            # Reset the index for a clean DataFrame
+            positions_df_non_ps.reset_index(drop=True, inplace=True)
+            positions_df_ps = positions_df[positions_df["%UL"] >= 93]
+            positions_df_ps = positions_df_ps.sort_values(by=["Underlying", "DTE", "Strike"], ascending=[False, False, False])
+            positions_df = pd.concat([positions_df_non_ps, positions_df_ps], ignore_index=True)
             positions_df["Strike (Display)"] = positions_df["Strike"].apply(
                 format_number
             )
@@ -424,12 +453,14 @@ class SRERisk(createConnection):
                     "IceChat String",
                     "P/C",
                     "Symbol",
+                    "Business DTE",
                 ]
             ]
             positions_df = selected_positions_cols.rename(
                 columns={"Lots (Display)": "Lots", "Strike (Display)": "Strike"}
             )
         else:
+            # Blank DF if there are no positions
             positions_df = pd.DataFrame(
                 columns=[
                     "DTE",
@@ -440,6 +471,7 @@ class SRERisk(createConnection):
                     "IceChat String",
                     "P/C",
                     "Symbol",
+                    "Business DTE",
                 ]
             )
         positions_df_html = positions_df.to_html(

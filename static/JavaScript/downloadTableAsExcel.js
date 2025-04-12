@@ -5,9 +5,10 @@
  * @param {Array<String>} customCols List of columns we want to output
  * @param {boolean} displayCol Do we want to display the column header? 
  * @param {Array<string>} dataCols Display order of the columns in csv file
+ * @param {string} format CSV or Excel TODO: need to figure out coloring
  * @param {Array<string>} prefix Array of strings we want to prepend to each row
  */
-function downloadTableAsExcel(tableId, fileName, customCols, displayCol, rowDisplayOrder, dataCols, prefix = []) {
+function downloadTableAsExcel(tableId, fileName, customCols, displayCol, rowDisplayOrder, dataCols, format, prefix = []) {
     const table = document.getElementById(tableId);
     let csv = [];
     
@@ -75,16 +76,19 @@ function downloadTableAsExcel(tableId, fileName, customCols, displayCol, rowDisp
         }
     })
 
-
-    // Create a CSV blob
-    const csvString = csv.join("\n");
-    const blob = new Blob([csvString], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    
     // Create a link and click it to download
     const a = document.createElement("a");
+    // Create a CSV blob
+    let blob;
+    if (format === "CSV"){
+        const csvString = csv.join("\n");
+        blob = new Blob([csvString], { type: "text/csv" });
+        a.download = fileName + ".csv";
+    }{
+        a.download = fileName + ".xlsx";
+    }
+    const url = URL.createObjectURL(blob);
     a.href = url;
-    a.download = fileName + ".csv"; // The name of the downloaded file
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);

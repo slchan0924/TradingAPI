@@ -98,6 +98,7 @@
                 <th>C$/DDiff</th>
                 <th>CAvg</th>
                 <th>Sell-B#</th>
+                <!-- <th class="clickable">Sell-B</th>-->
                 <th>Sell-B</th>
                 <th>Sell-A</th>
                 <th>Sell-A#</th>
@@ -225,6 +226,23 @@
                             td.classList.add("grey-shade");
                         }
                         td.innerText = pair[col];
+                        /*
+                        // Add a clickable for Sell Bid, currently for SPY only
+                        if (col === "Sell-B" && event.data.usym == "SPY") {
+                            td.className = "clickable";
+                            td.onclick = () => {
+                                const url = new URL('/createSingleLegOrder', window.location.origin);
+                                url.searchParams.append('side', 'sell');
+                                url.searchParams.append('quantity', event.data.quantity);
+                                url.searchParams.append('price', pair["Sell-B"]);
+                                url.searchParams.append('iceChat', pair["Sell IceChat"]);
+                                // url.searchParams.append('buyQty', event.data.quantity);
+                                // url.searchParams.append('buyAsk', pair["Buy-A"]);
+                                // url.searchParams.append('buyLegIceChat', pair["Buy IceChat"]);
+                                window.location.href = url.toString();
+                            };
+                        }
+                        */
                     }else{
                         td.innerText = '';
                     }
