@@ -29,18 +29,19 @@ fid_field_map = {
 }
 # cache to store option data per underlying/symbol
 option_data = {}
+# note that SPX symbol doesn't exist, we just need to populate it via SPY * 10
 usym_map = {"QQQ": "QQQ.Q", "SPY": "SPY.Q", "SPX": "=SPX.WI"}
 usym_data = {
-    "QQQ.Q": {"Underlying": "QQQ", "Bid": 0, "Ask": 0, "Mid": 512},
-    "SPY.Q": {"Underlying": "SPY", "Bid": 0, "Ask": 0, "Mid": 597},
-    "=SPX.WI": {"Underlying": "SPX", "Bid": 5950, "Ask": 5956, "Mid": 5953},
+    "QQQ.Q": {"Underlying": "QQQ", "Bid": 0, "Ask": 0, "Mid": 454.4},
+    "SPY.Q": {"Underlying": "SPY", "Bid": 0, "Ask": 0, "Mid": 536.3},
+    "=SPX.WI": {"Underlying": "SPX", "Bid": 0, "Ask": 0, "Mid": 5363},
 }
 debug_mode = False
 original_directory = os.path.dirname(os.getcwd())
 snapshot_path = os.path.join(original_directory, "SnapshotViewer", "opra_snapshot.txt")
-snapshot_path_editor = os.path.join(".", "SnapshotViewer", "opra_snapshot.txt")
+snapshot_path_editor = os.path.join(original_directory, "ApiWorkKK", "SnapshotViewer", "opra_snapshot.txt")
 snapshot_path_copy = os.path.join(original_directory, "SnapshotViewer", "opra_snapshot_copy.txt")
-snapshot_path_copy_editor = os.path.join(".", "SnapshotViewer", "opra_snapshot_copy.txt")
+snapshot_path_copy_editor = os.path.join(original_directory, "ApiWorkKK", "SnapshotViewer", "opra_snapshot_copy.txt")
 
 def format_number(x):
     return f"{x:,}"
@@ -89,20 +90,29 @@ def check_string(string):
 # activ classes
 class SubscriptionHandler:
     def on_subscription_refresh(self, msg, context):
-        # first timer!
         # print(f'REFRESH received for {msg.symbol}')
         bid = displayFieldAsStr(msg, "Bid")
         ask = displayFieldAsStr(msg, "Ask")
         bidSize = displayFieldAsStr(msg, "BidSize")
         askSize = displayFieldAsStr(msg, "AskSize")
         if msg.symbol in usym_data:
-            if check_string(bid):
+            bid_true = check_string(bid)
+            ask_true = check_string(ask)
+            if bid_true:
                 usym_data[msg.symbol]["Bid"] = displayStrAsNum(clean_string(bid))
-            if check_string(ask):
+                if msg.symbol == "SPY.Q":
+                    usym_data["=SPX.WI"]["Bid"] = usym_data[msg.symbol]["Bid"] * 10
+            if ask_true:
                 usym_data[msg.symbol]["Ask"] = displayStrAsNum(clean_string(ask))
-            usym_data[msg.symbol]["Mid"] = (
-                usym_data[msg.symbol]["Ask"] + usym_data[msg.symbol]["Bid"]
-            ) / 2
+                if msg.symbol == "SPY.Q":
+                    usym_data["=SPX.WI"]["Ask"] = usym_data[msg.symbol]["Ask"] * 10
+            if bid_true and ask_true:
+                usym_data[msg.symbol]["Mid"] = (
+                    usym_data[msg.symbol]["Ask"] + usym_data[msg.symbol]["Bid"]
+                ) / 2
+                if msg.symbol == "SPY.Q":
+                    usym_data["=SPX.WI"]["Mid"] = usym_data[msg.symbol]["Mid"] * 10
+            print(usym_data)
         else:
             underlying, sym = msg.symbol.split("/")
             usym = "SPX" if underlying == "SPXW" else underlying
@@ -133,7 +143,8 @@ class SubscriptionHandler:
                 ) / 2
 
     def on_subscription_update(self, msg, context):
-        # print(f'UPDATE received for {msg.symbol}')
+        if debug_mode:
+            print(f'UPDATE received for {msg.symbol}')
         # print(common.update_message_to_string(msg, context.session.metadata))
         bid = displayFieldAsStr(msg, "Bid")
         ask = displayFieldAsStr(msg, "Ask")
@@ -144,8 +155,12 @@ class SubscriptionHandler:
         if msg.symbol in usym_data:
             if check_string(bid):
                 usym_data[msg.symbol]["Bid"] = displayStrAsNum(clean_string(bid))
+                if msg.symbol == "SPY.Q":
+                    usym_data["=SPX.WI"]["Bid"] = usym_data[msg.symbol]["Bid"] * 10
             if check_string(ask):
                 usym_data[msg.symbol]["Ask"] = displayStrAsNum(clean_string(ask))
+                if msg.symbol == "SPY.Q":
+                    usym_data["=SPX.WI"]["Ask"] = usym_data[msg.symbol]["Ask"] * 10
             if (
                 usym_data[msg.symbol]["Ask"] is not None
                 and usym_data[msg.symbol]["Bid"] is not None
@@ -153,11 +168,15 @@ class SubscriptionHandler:
                 usym_data[msg.symbol]["Mid"] = (
                     usym_data[msg.symbol]["Ask"] + usym_data[msg.symbol]["Bid"]
                 ) / 2
+                if msg.symbol == "SPY.Q":
+                    usym_data["=SPX.WI"]["Mid"] = usym_data[msg.symbol]["Mid"] * 10
             if check_string(askTime):
                 usym_data[msg.symbol]["AskTime"] = askTime
             if check_string(bidTime):
                 usym_data[msg.symbol]["BidTime"] = bidTime
-            # print("{}: {}".format(msg.symbol, usym_data[msg.symbol]))    
+            print("{}: {}".format(msg.symbol, usym_data[msg.symbol]))
+            if msg.symbol == "SPY.Q" and debug_mode:
+                print("SPX: {}".format(usym_data["=SPX.WI"]))
         else:
             underlying, sym = msg.symbol.split("/")
             usym = "SPX" if underlying == "SPXW" else underlying
@@ -176,6 +195,8 @@ class SubscriptionHandler:
             option_data[usym][sym]["Mid"] = (
                 option_data[usym][sym]["Bid"] + option_data[usym][sym]["Ask"]
             ) / 2
+            if debug_mode:
+                print("{}: {}".format(msg.symbol, option_data[usym][sym]))
 
     def on_subscription_topic_status(self, msg, context):
         a = 1
@@ -342,7 +363,8 @@ class SpreadCalculation(createConnection):
             with open(batch_file_path, "r") as file:
                 content = file.read()
         except FileNotFoundError:
-            with open(os.path.join(".", "SnapshotViewer", "runSnapshot.bat"), "r") as file:
+            batch_file_path = os.path.join(".", "SnapshotViewer", "runSnapshot.bat")
+            with open(batch_file_path, "r") as file:
                 content = file.read()
 
         # Use regex to find and replace the parameter after -s
@@ -357,7 +379,6 @@ class SpreadCalculation(createConnection):
                 updated_content = re.sub(
                     r"(-s\s+)(\S+)", r"\1" + self.query_string, content
                 )
-
                 # Write the updated content back to the batch file
                 with open(batch_file_path, "w") as file:
                     file.write(updated_content)
@@ -368,6 +389,8 @@ class SpreadCalculation(createConnection):
                 # -f: Column fields
                 # -s: symbols
                 # -o: output file
+
+                # Copy always has the previous run's result just in case it got wiped
                 try:
                     shutil.copy(
                         snapshot_path,
@@ -391,11 +414,11 @@ class SpreadCalculation(createConnection):
         symbols_to_sub = []
         try:
             option_symbols = pd.read_csv(
-                snapshot_path, delim_whitespace=True
+                snapshot_path, sep='\s+'
             )
         except FileNotFoundError:
             option_symbols = pd.read_csv(
-                snapshot_path_editor, delim_whitespace=True
+                snapshot_path_editor, sep='\s+'
             )
         # filter out 3rd Week for SPX symbols
         option_symbols["ExpirationDate"] = pd.to_datetime(
@@ -443,7 +466,6 @@ class SpreadCalculation(createConnection):
         ul_exp_range: list[str],
         ps_mid_avg: dict,
     ):
-        # TODO: Exclude SPX 3rd Friday!
         # same length for pcts, pts wide and exp range
         put_spread_pairs = []
         symbols = ["SPX", "SPXW"]
@@ -524,66 +546,67 @@ class SpreadCalculation(createConnection):
                                         sell_mid = (
                                             sell_strike["Ask"] + sell_strike["Bid"]
                                         ) / 2
-                                        if (
-                                            sell_strike["Symbol"]
-                                            + "-"
-                                            + buy_strike["Symbol"]
-                                            in ps_mid_avg
-                                        ):
-                                            c_avg = round(
-                                                ps_mid_avg[
-                                                    sell_strike["Symbol"]
-                                                    + "-"
-                                                    + buy_strike["Symbol"]
-                                                ],
-                                                0,
-                                            )
-                                        else:
-                                            c_avg = round(sell_mid - buy_mid, 3)
-                                        put_spread_pairs.append(
-                                            {
-                                                "Short %UL": round(
-                                                    sell_strike["Strike"]
-                                                    / spx_price
-                                                    * 100,
-                                                    2,
-                                                ),
-                                                "K-Diff": round(
-                                                    sell_strike["Strike"]
-                                                    - buy_strike["Strike"],
+                                        if (buy_mid != 0) and (sell_mid != 0):
+                                            if (
+                                                sell_strike["Symbol"]
+                                                + "-"
+                                                + buy_strike["Symbol"]
+                                                in ps_mid_avg
+                                            ):
+                                                c_avg = round(
+                                                    ps_mid_avg[
+                                                        sell_strike["Symbol"]
+                                                        + "-"
+                                                        + buy_strike["Symbol"]
+                                                    ],
                                                     0,
-                                                ),
-                                                "DTE": (
-                                                    sell_exp - current_time_in_NY
-                                                ).days,
-                                                "C": round(sell_mid - buy_mid, 3),
-                                                "Sell Symbol": sell_strike["Symbol"],
-                                                "Buy Symbol": buy_strike["Symbol"],
-                                                "MidAvg": c_avg,
-                                                "Sell Mid": round(sell_mid, 3),
-                                                "Buy Mid": round(buy_mid, 3),
-                                                "Short Leg IceChat": (
-                                                    symbol
-                                                    + " "
-                                                    + sell_exp.strftime("%b %d")
-                                                    + ", "
-                                                    + str(int(sell_strike["Strike"]))
-                                                    + " puts"
-                                                    if sell_strike["OptionType"] == "P"
-                                                    else " calls"
-                                                ),
-                                                "Long Leg IceChat": (
-                                                    symbol
-                                                    + " "
-                                                    + buy_exp.strftime("%b %d")
-                                                    + ", "
-                                                    + str(int(buy_strike["Strike"]))
-                                                    + " puts"
-                                                    if buy_strike["OptionType"] == "P"
-                                                    else " calls"
-                                                ),
-                                            }
-                                        )
+                                                )
+                                            else:
+                                                c_avg = round(sell_mid - buy_mid, 3)
+                                            put_spread_pairs.append(
+                                                {
+                                                    "Short %UL": round(
+                                                        sell_strike["Strike"]
+                                                        / spx_price
+                                                        * 100,
+                                                        2,
+                                                    ),
+                                                    "K-Diff": round(
+                                                        sell_strike["Strike"]
+                                                        - buy_strike["Strike"],
+                                                        0,
+                                                    ),
+                                                    "DTE": (
+                                                        sell_exp - current_time_in_NY
+                                                    ).days,
+                                                    "C": round(sell_mid - buy_mid, 3),
+                                                    "Sell Symbol": sell_strike["Symbol"],
+                                                    "Buy Symbol": buy_strike["Symbol"],
+                                                    "MidAvg": c_avg,
+                                                    "Sell Mid": round(sell_mid, 3),
+                                                    "Buy Mid": round(buy_mid, 3),
+                                                    "Short Leg IceChat": (
+                                                        symbol
+                                                        + " "
+                                                        + sell_exp.strftime("%b %d")
+                                                        + ", "
+                                                        + str(int(sell_strike["Strike"]))
+                                                        + " puts"
+                                                        if sell_strike["OptionType"] == "P"
+                                                        else " calls"
+                                                    ),
+                                                    "Long Leg IceChat": (
+                                                        symbol
+                                                        + " "
+                                                        + buy_exp.strftime("%b %d")
+                                                        + ", "
+                                                        + str(int(buy_strike["Strike"]))
+                                                        + " puts"
+                                                        if buy_strike["OptionType"] == "P"
+                                                        else " calls"
+                                                    ),
+                                                }
+                                            )
         time.sleep(0.5)
         return put_spread_pairs
 
@@ -777,11 +800,10 @@ class SpreadCalculation(createConnection):
 
 if __name__ == "__main__":
     sc = SpreadCalculation()
-    sc.get_symbols(["SPY", "SPX", "QQQ"], ["10,3", "11,4"], "SPX", ["4,5"])
+    sc.get_symbols(["SPY", "SPX", "QQQ"], ["10,3", "9,3"], "SPX", ["6,7"])
     sc.invoke_update_viewer()
     sesh = sc.connect_to_activ()
-    sc.read_activ_strikes()
     sc.subscribe(sesh)
-    sc.subscribe_usym(sesh)
+    #sc.subscribe_usym(sesh)
     # sc.get_put_spread_pairs([97, 96], [50, 100], ["7,8", "7,8"])
     # sc.get_buy_sell_pairs(["SPY", "SPX", "QQQ"], ["82-86", "82-86", "82-86"], ["10,4"], 50)

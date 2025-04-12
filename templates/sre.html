@@ -8,6 +8,8 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/3.1.0/socket.io.js"></script>
     <script src="{{ url_for('static', filename='JavaScript/timeStamp.js') }}"></script>
     <script src="{{ url_for('static', filename='JavaScript/downloadTableAsExcel.js') }}"></script>
+    <script src="{{ url_for('static', filename='JavaScript/applyColorGradient.js') }}"></script>
+    <script src="{{ url_for('static', filename='JavaScript/websiteUtils.js') }}"></script>
 </head>
 <body>
     <div id="overlay">
@@ -84,6 +86,12 @@
                         tempDiv.innerHTML = sectionTable;
                         // Insert the new table into the container
                         tableContainer.appendChild(tempDiv.firstChild);
+                        // Extra logic for Positions
+                        if (key === "positions"){
+                            applyGradient(sectionContainer);
+                            let table = document.getElementById('positions_table');
+                            removeColumn(table, "Business DTE");
+                        }
                     }
                 }
             }
@@ -103,26 +111,6 @@
             populateSRETables(document, data);
             setTimeout(() => hideOverlay(document), 1000);
         })
-        
-        function showOverlay(document) {
-            const overlay = document.getElementById('overlay');
-            if (overlay){
-                const overlayStyle = overlay.style;
-                if (overlayStyle){
-                    overlayStyle.display = 'flex';
-                }
-            }
-        }
-    
-        function hideOverlay(document) {
-            const overlay = document.getElementById('overlay');
-            if (overlay){
-                const overlayStyle = overlay.style;
-                if (overlayStyle){
-                    overlayStyle.display = 'none';
-                }
-            }
-        }
     </script>
 </body>
 </html>

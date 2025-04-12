@@ -123,6 +123,13 @@ body {
 h1, h2, h3 {
     color: #121212; /* White color for headings */
 }
+.clickable {
+    cursor: pointer; /* Change cursor to pointer on hover */
+}
+
+.clickable:hover {
+    background-color: #f0f0f0; /* Light grey background on hover */
+}
 #overlay {
     position: fixed;
     top: 0;

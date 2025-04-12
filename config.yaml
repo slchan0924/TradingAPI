@@ -10,6 +10,8 @@ settings:
     host: aop-ch-NAT.activfinancial.com:9061
     table: 602
     output_fields: 456;280;362;329
+  Silexx:
+    Environment: "newyork_cert"
   General:
     start_time: "09:00:00"
     end_time: "17:00:00"
@@ -24,8 +26,11 @@ credentials:
     password: VelFalAP1!
     account: VCPS-655-675557-P
   ActivOnePlatform:
-    username: activ-na
-    password: t769x00sd
+    username: keki9000-user02
+    password: keki-u2
   ActivContentPlatform:
-    username: activ-na
-    password: t769x00sd
+    username: keki9000-user02
+    password: keki-u2
+  Silexx:
+    username: c-kkibbe
+    password: Cboe1234!

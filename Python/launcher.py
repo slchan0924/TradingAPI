@@ -5,7 +5,7 @@ from flask import (
     request,
     redirect,
     url_for,
-    copy_current_request_context,
+    # copy_current_request_context,
 )
 
 from datetime import datetime
@@ -19,8 +19,9 @@ import asyncio
 lock = threading.Lock()
 
 # Import from other python scripts
-from activ import SpreadCalculation, usym_data, usym_map
-from sre import SRERisk
+from activ import SpreadCalculation #, usym_data, usym_map
+# from sre import SRERisk
+# from silexx import silexx_positions_and_trades
 from sqlite3db import createDatabase
 
 app = Flask(__name__, template_folder="../templates", static_folder="../static")
@@ -55,10 +56,11 @@ def run_async_usym_sub():
     asyncio.run(spread_calc.subscribe_usym(activ_session))
 
 # Create global instances
-sre_risk = SRERisk()
+# sre_risk = SRERisk()
 spread_calc = SpreadCalculation()
+# silexx = silexx_positions_and_trades()
 activ_session = spread_calc.connect_to_activ()
-sre_html = ""
+# silexx_html = ""
 ps_pairs_persist = {}
 buy_sell_pairs_persist = {}
 stop_flag = False
@@ -79,32 +81,6 @@ def home():
         form_data=form_data,
         zip=zip,
     )
-
-
-@app.route("/srepositions", methods=["POST"])
-def get_positions():
-    @copy_current_request_context
-    def sre_run():
-        global sre_html
-        while True:
-            sre_risk.get_positions(usym_data)
-            sre_risk.calc_ps_ladder(1, 10, usym_data[usym_map["SPX"]]["Mid"])
-            sre_risk.calc_weighted_avg()
-            sre_risk.get_house_policy(False)
-            sre_risk.calc_mkt_risk()
-            sre_html = sre_risk.get_sre_html()
-            time.sleep(5)
-
-    thread = threading.Thread(target=sre_run, daemon=True)
-    thread.start()
-    return "", 204
-
-
-@app.route("/srepositions/check", methods=["GET"])
-def check_sre_status():
-    if sre_html:
-        return {"ready": True, "html": sre_html}
-    return {"ready": False}
 
 
 @app.route("/submit", methods=["POST"])
@@ -138,6 +114,7 @@ def collectdataFromWebsite():
         "c_avg_start_time": request.form.get("c_avg_start_time") or "16:00",
         "c_avg_end_time": request.form.get("c_avg_end_time") or "16:30",
         "selectedTimezone": request.form.get("selectedTimezone") or "Asia/Tokyo",
+        "contractsToExecute": request.form.get("contractsToExecute"),
     }
     write_data_to_json(form_data)
     session["form_data"] = form_data
@@ -258,11 +235,88 @@ def pairs(usym, expiry_combo):
 def spread():
     return render_template("spread.html", pairs=json.dumps(ps_pairs_persist))
 
+'''
+@app.route("/createSingleLegOrder", methods=["GET"])
+def createSingleLegOrder():
+    is_buy = True if request.args.get("side") == "buy" else False
+    run_validation = True if request.args.get("validate") == "true" else False
+    if is_buy:
+        order_obj = {
+            "Side": "Buy",
+            "IceChat": request.args.get("iceChat"),
+            "Price": request.args.get("price"),
+            "Quantity": request.args.get("quantity"),
+        }
+    else:
+        order_obj = {
+            "Side": "Sell",
+            "IceChat": request.args.get("iceChat"),
+            "Price": request.args.get("price"),
+            "Quantity": request.args.get("quantity"),
+        }
+    silexx.execute_order(order_obj, run_validation)
+    return "Order Created"
+
+# Put it here first for later use
+@app.route("/createMultiLegOrder", methods=["GET"])
+def createMultiLegOrder():
+    run_validation = True if request.args.get("validate") == "true" else False
+    multi_leg_order_obj = {
+        "Side": "Spread",
+        "Buy Leg IceChat": request.args.get("buyLegIceChat"),
+        "Sell Leg IceChat": request.args.get("sellLegIceChat"),
+        "C": request.args.get("C"),
+        "Quantity": request.args.get("quantity"),
+    }
+    silexx.execute_multi_leg_order(multi_leg_order_obj, run_validation)
+    return "Multi Leg Order Created"
+
+@app.route("/silexx")
+def silexx_main():
+    return render_template("silexx.html")
+
+@app.route("/getSilexxPositions", methods=["POST"])
+def get_silexx_positions():
+    global silexx_html
+    while True:
+        silexx_html = silexx.get_positions()
+        time.sleep(5)
+
+@app.route("/silexx/check", methods=["GET"])
+def check_status():
+    if silexx_html:
+        return {"ready": True, "html": silexx_html}
+    return {"ready": False}
 
 @app.route("/SRE")
 def SRE():
     return render_template("sre.html", data=sre_html)
 
 
+@app.route("/srepositions", methods=["POST"])
+def get_positions():
+    @copy_current_request_context
+    def sre_run():
+        global sre_html
+        while True:
+            sre_risk.get_positions(usym_data)
+            sre_risk.calc_ps_ladder(1, 10, usym_data[usym_map["SPX"]]["Mid"])
+            sre_risk.calc_weighted_avg()
+            sre_risk.get_house_policy(False)
+            sre_risk.calc_mkt_risk()
+            sre_html = sre_risk.get_sre_html()
+            time.sleep(5)
+
+    thread = threading.Thread(target=sre_run, daemon=True)
+    thread.start()
+    return "", 204
+
+
+@app.route("/srepositions/check", methods=["GET"])
+def check_sre_status():
+    if sre_html:
+        return {"ready": True, "html": sre_html}
+    return {"ready": False}
+'''
 if __name__ == "__main__":
     socketio.run(app, allow_unsafe_werkzeug=True)
