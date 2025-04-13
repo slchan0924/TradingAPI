@@ -39,9 +39,9 @@ usym_data = {
 debug_mode = False
 original_directory = os.path.dirname(os.getcwd())
 snapshot_path = os.path.join(original_directory, "SnapshotViewer", "opra_snapshot.txt")
-snapshot_path_editor = os.path.join(original_directory, "ApiWorkKK", "SnapshotViewer", "opra_snapshot.txt")
+snapshot_path_editor = os.path.join(original_directory, "TradingAPI", "SnapshotViewer", "opra_snapshot.txt")
 snapshot_path_copy = os.path.join(original_directory, "SnapshotViewer", "opra_snapshot_copy.txt")
-snapshot_path_copy_editor = os.path.join(original_directory, "ApiWorkKK", "SnapshotViewer", "opra_snapshot_copy.txt")
+snapshot_path_copy_editor = os.path.join(original_directory, "TradingAPI", "SnapshotViewer", "opra_snapshot_copy.txt")
 
 def format_number(x):
     return f"{x:,}"

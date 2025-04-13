@@ -1,1 +1,1 @@
-SnapshotViewer_x86-64_win64_vc142_mds.exe -u "keki9000-user01" -p "keki-u1" -t 602 -f "456;280;362;329" -o "opra_snapshot.txt" -s  SPX/250416*.O;SPXW/250416*.O;SPX/250422*.O;SPXW/250422*.O;QQQ/250416*.O;QQQ/250422*.O;SPY/250416*.O;SPY/250422*.O;SPX/250418*.O;SPXW/250418*.O 
+SnapshotViewer_x86-64_win64_vc142_mds.exe -u "keki9000-user01" -p "keki-u1" -t 602 -f "456;280;362;329" -o "opra_snapshot.txt" -s  SPX/250415*.O;SPXW/250415*.O;SPX/250422*.O;SPXW/250422*.O;QQQ/250415*.O;QQQ/250422*.O;SPY/250415*.O;SPY/250422*.O;SPX/250416*.O;SPX/250418*.O;SPXW/250416*.O;SPXW/250418*.O 
