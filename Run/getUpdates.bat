@@ -18,8 +18,8 @@ REM Check for merge conflicts
 IF ERRORLEVEL 1 (
     echo Merge conflicts detected. Resolving by accepting changes from remote...
 
-    REM Checkout 'theirs' changes
-    git checkout --theirs .
+    REM Checkout 'ours' changes
+    git checkout --ours .
 )
 
 echo Changes have been fetched and pulled from the branch: %CURRENT_BRANCH%
