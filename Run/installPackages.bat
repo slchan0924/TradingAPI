@@ -20,7 +20,7 @@ echo Installing packages from requirements.txt...
 pip install -r requirements.txt
 
 echo Installing activfinancial package...
-cd ApiWorkKK
+cd TradingAPI
 pip install activfinancial-1.10.0-py3-none-win_amd64.whl
 
 pause

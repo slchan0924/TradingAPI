@@ -145,7 +145,6 @@ class SubscriptionHandler:
     def on_subscription_update(self, msg, context):
         if debug_mode:
             print(f'UPDATE received for {msg.symbol}')
-        # print(common.update_message_to_string(msg, context.session.metadata))
         bid = displayFieldAsStr(msg, "Bid")
         ask = displayFieldAsStr(msg, "Ask")
         bidSize = displayFieldAsStr(msg, "BidSize")
