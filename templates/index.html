@@ -319,6 +319,7 @@
             Object.keys(data).forEach((usym) => {
                 Object.keys(data[usym]).forEach( (expiryRange) => {
                     const underlyingPairs = data[usym][expiryRange];
+                    // Don't popup a new page if there are no pairs found
                     if (underlyingPairs.length > 0) {
                         let usym_display = JSON.parse(JSON.stringify(display));
                         usym_display['inputData'] = underlyingPairs;
@@ -350,6 +351,7 @@
         })
         let spreadWindow;
         socket.on('put_spread_pairs', (data) => {
+            // Don't popup a new page if there are no pairs found
             if (data.length > 0){
                 if (!spreadWindow || spreadWindow.closed){
                     spreadWindow = window.open('putSpread', '_blank');
