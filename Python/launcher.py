@@ -174,9 +174,9 @@ def process_input(form_data: dict, tz_selected, c_avg_start: datetime, c_avg_end
         db = createDatabase()
         while not stop_flag:
             db.cleanup(current_time)
-            c_avg = db.get_rolling_c_dollar_average(10)
+            c_avg = db.get_rolling_c_dollar_average()
             # print("C$ Average:", c_avg)
-            ps_mid_avg = db.get_rolling_mid_average(10)
+            ps_mid_avg = db.get_rolling_mid_average()
             # print("PS Mid Average:", ps_mid_avg)
             try:
                 put_spread_pairs = spread_calc.get_put_spread_pairs(
