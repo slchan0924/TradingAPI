@@ -86,6 +86,15 @@
 .grey-shade {
     background-color: lightgrey;
 }
+
+.yellow-shade {
+    background-color: yellow;
+}
+
+.green-shade {
+    background-color: green;
+}
+
 body {
     margin: 0;
     padding: 0;
