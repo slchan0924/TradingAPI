@@ -20,6 +20,12 @@
         .grey-shade {
             background-color: lightgrey;
         }
+        .yellow-shade {
+            background-color: yellow;
+        }
+        .green-shade {
+            background-color: green;
+        }
         body {
             margin: 0;
             padding: 0;
@@ -213,6 +219,8 @@
             // Toggle to control whether to show the bid/ask sizes
             modifyColumns(event);
             const pairsData = event.data.inputData;
+            const cDiff = parseFloat(event.data.cDiff.replace(/,/g, ''));
+            const cDiff2 = parseFloat(event.data.cDiff2.replace(/,/g, ''));
             pairsData.sort( (a, b) => {
                 return parseFloat(b["C$"]) - parseFloat(a["C$"]);
             })
@@ -226,6 +234,20 @@
                             td.classList.add("grey-shade");
                         }
                         td.innerText = pair[col];
+                        // Add coloring on C$ based on C' and C''
+                        // If C$ > CAvg + C', color it yellow
+                        // If C# > CAvg + C' + C'', color it green
+                        if (col === "C$"){
+                            let cAvg = parseFloat(pair["CAvg"].replace(/,/g, ''));
+                            let cDollar = parseFloat(pair["C$"].replace(/,/g, ''));
+                            if (cDollar - (cAvg + cDiff + cDiff2) > 0){
+                                console.log("Second threshold met, coloring green");
+                                td.classList.add("green-shade");
+                            }else if (cDollar - (cAvg + cDiff) > 0){
+                                console.log("First threshold met, coloring yellow");
+                                td.classList.add("yellow-shade");
+                            }
+                        }
                         /*
                         // Add a clickable for Sell Bid, currently for SPY only
                         if (col === "Sell-B" && event.data.usym == "SPY") {

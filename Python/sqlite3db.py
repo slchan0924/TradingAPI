@@ -13,7 +13,7 @@ class createDatabase:
         try:
             db_con_avg = sqlite3.connect(os.path.join(original_directory, "Database", "api_data_store.db"))
         except sqlite3.OperationalError:
-            db_con_avg = sqlite3.connect(os.path.join(".", "Database", "api_data_store.db"))
+            db_con_avg = sqlite3.connect(os.path.abspath(os.path.join(".", "Database", "api_data_store.db")))
         cur_avg = db_con_avg.cursor()
         cur_avg.execute(
             """
@@ -30,7 +30,7 @@ class createDatabase:
         try:
             db_con_history = sqlite3.connect(os.path.join(original_directory, "Database", "eod_cdollar.db"))
         except sqlite3.OperationalError:
-            db_con_history = sqlite3.connect(os.path.join(".", "Database", "eod_cdollar.db"))
+            db_con_history = sqlite3.connect(os.path.abspath(os.path.join(".", "Database", "eod_cdollar.db")))
             
         cur_eod = db_con_history.cursor()
         cur_eod.execute(
@@ -229,9 +229,9 @@ class createDatabase:
 
 
 if __name__ == "__main__":
-    db = createDatabase()
     run = False
     while run is True:
+        db = createDatabase()
         data = {
             "SPX": [
                 {

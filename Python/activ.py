@@ -112,7 +112,6 @@ class SubscriptionHandler:
                 ) / 2
                 if msg.symbol == "SPY.Q":
                     usym_data["=SPX.WI"]["Mid"] = usym_data[msg.symbol]["Mid"] * 10
-            print(usym_data)
         else:
             underlying, sym = msg.symbol.split("/")
             usym = "SPX" if underlying == "SPXW" else underlying
@@ -344,27 +343,40 @@ class SpreadCalculation(createConnection):
         symbols_to_subscribe = self.symbols_all.tolist() if hasattr(self, "symbols_all") else []
         for key in usym_data.keys():
             symbols_to_subscribe.append(key)
-        print("Subscring to Symbols.")
+        print("Subscribing to Symbols.")
         self.subscribe_to_symbols(symbols_to_subscribe, activ_session)
 
     def subscribe_usym(self, activ_session: Session):
         symbols_to_subscribe = []
         for key in usym_data.keys():
             symbols_to_subscribe.append(key)
-        print("Subscring to Underlying symbols.")
+        print("Subscribing to Underlying symbols.")
         self.subscribe_to_symbols(symbols_to_subscribe, activ_session)
 
     def invoke_update_viewer(self):
         # should call the ACP Update Viewer, and write to a txt file
-        batch_file_path = os.path.join(original_directory, "SnapshotViewer", "runSnapshot.bat")
+        batch_file_path_1 = os.path.join(original_directory, "SnapshotViewer", "runSnapshot.bat")
+        batch_file_path_2 = os.path.join(".", "SnapshotViewer", "runSnapshot.bat")
         # Read the contents of the batch file
         try:
-            with open(batch_file_path, "r") as file:
+            with open(batch_file_path_1, "r") as file:
                 content = file.read()
+                used_path = batch_file_path_1
         except FileNotFoundError:
-            batch_file_path = os.path.join(".", "SnapshotViewer", "runSnapshot.bat")
-            with open(batch_file_path, "r") as file:
-                content = file.read()
+            try:
+                with open(batch_file_path_2, "r") as file:
+                    content = file.read()
+                    used_path = batch_file_path_2
+            except FileNotFoundError:
+                content = 'SnapshotViewer_x86-64_win64_vc142_mds.exe -u "keki9000-user01" -p "keki-u1" -t 602 -f "456;280;362;329" -o "opra_snapshot.txt" -s  SPX/250415*.O;SPXW/250415*.O;SPX/250422*.O;SPXW/250422*.O;QQQ/250415*.O;QQQ/250422*.O;SPY/250415*.O;SPY/250422*.O;SPX/250416*.O;SPX/250418*.O;SPXW/250416*.O;SPXW/250418*.O'
+                try:
+                    with open(batch_file_path_1, "w") as file:
+                        file.write(content)
+                        used_path = batch_file_path_1
+                except FileNotFoundError:
+                    with open(batch_file_path_2, "w") as file:
+                        file.write(content)
+                        used_path = batch_file_path_2
 
         # Use regex to find and replace the parameter after -s
         match = re.search(r"(-s\s+)(\S+)", content)
@@ -379,7 +391,7 @@ class SpreadCalculation(createConnection):
                     r"(-s\s+)(\S+)", r"\1" + self.query_string, content
                 )
                 # Write the updated content back to the batch file
-                with open(batch_file_path, "w") as file:
+                with open(used_path, "w") as file:
                     file.write(updated_content)
                 # -u: username
                 # -p: password
@@ -396,12 +408,15 @@ class SpreadCalculation(createConnection):
                         snapshot_path_copy
                     )
                 except FileNotFoundError:
-                    shutil.copy(
-                        snapshot_path_editor,
-                        snapshot_path_copy_editor
-                    )
+                    try:
+                        shutil.copy(
+                            snapshot_path_editor,
+                            snapshot_path_copy_editor
+                        )
+                    except FileNotFoundError:
+                        print("Main snapshot file does not currently exist.")
 
-                batch_file_directory = os.path.dirname(batch_file_path)
+                batch_file_directory = os.path.dirname(used_path)
                 os.chdir(batch_file_directory)
                 subprocess.run("runSnapshot.bat", shell=True)
                 os.chdir(original_directory)

@@ -324,7 +324,10 @@
                         let usym_display = JSON.parse(JSON.stringify(display));
                         usym_display['inputData'] = underlyingPairs;
                         usym_display['usym'] = usym;
-                        usym_display['quantity'] = document.getElementById('contractsToExecute');
+                        usym_display['quantity'] = $('input[name="contractsToExecute"]').val();
+                        usym_display['cDiff'] = $('input[name="c_first_d"]').val();
+                        usym_display['cDiff2'] = $('input[name="c_second_d"]').val();
+                        console.log(JSON.stringify(usym_display));
                         let newWindow;
                         let key = usym + ': ' + expiryRange;
                         if (!openedWindows[key] || openedWindows[key].closed) {

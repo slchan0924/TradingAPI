@@ -36,9 +36,11 @@ def read_input_data():
         with open(input_path, "r") as f:
             return json.load(f)
     except FileNotFoundError:
-        print("test")
-        with open(input_path_from_editor, "r") as f:
-            return json.load(f)
+        try:
+            with open(input_path_from_editor, "r") as f:
+                return json.load(f)
+        except FileNotFoundError:
+            return json.loads('{"target_symbols": ["SPX", "QQQ", "SPY"], "target_strike_ranges": ["82-87", "83-86", "82-87"], "expiry_combo": ["10,4"], "ps_ul": ["96"], "ps_points_wide": ["50"], "ps_expiry_range": ["4,6"], "points_over": "10", "showLongBidVolume": "false", "showLongAskVolume": "false", "showShortBidVolume": "false", "showShortAskVolume": "false", "c_first_d": "10000", "c_second_d": "1000", "c_avg_start_time": "02:00", "c_avg_end_time": "13:00", "selectedTimezone": "Asia/Tokyo", "contractsToExecute": "500"}')
 
 
 def write_data_to_json(data):
