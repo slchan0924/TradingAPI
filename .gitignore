@@ -156,6 +156,7 @@ cython_debug/
 
 # input default for website
 inputs.json
+SnapshotViewer/
 
 # PyCharm
 #  JetBrains specific template is maintained in a separate JetBrains.gitignore that can
