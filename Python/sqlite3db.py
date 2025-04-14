@@ -177,36 +177,29 @@ class createDatabase:
 
         connection.commit()
 
-    def get_rolling_c_dollar_average(self, rolling_average_mins: int):
+    def get_rolling_c_dollar_average(self):
         cursor = self.Cursor_Avg
-        cutoff_time = datetime.now() - timedelta(minutes=rolling_average_mins)
+        # ending time hits -> freeze the average
         cursor.execute(
             """
             SELECT OptionSymbol, AVG(CDollar) 
             FROM CHistory 
-            WHERE Timestamp >= ?
-            AND CDollar IS NOT NULL
+            WHERE CDollar IS NOT NULL
             GROUP BY OptionSymbol
-        """,
-            (cutoff_time,),
-        )
+        """)
         averageCDollar = cursor.fetchall()
         result_dict = {row[0]: row[1] for row in averageCDollar}
         return result_dict
 
-    def get_rolling_mid_average(self, rolling_average_mins: int):
+    def get_rolling_mid_average(self):
         cursor = self.Cursor_Avg
-        cutoff_time = datetime.now() - timedelta(minutes=rolling_average_mins)
         cursor.execute(
             """
             SELECT OptionSymbol, AVG(Mid) 
             FROM CHistory 
-            WHERE Timestamp >= ?
-            AND Mid IS NOT NULL
+            WHERE Mid IS NOT NULL
             GROUP BY OptionSymbol
-        """,
-            (cutoff_time,),
-        )
+        """)
         averageCDollar = cursor.fetchall()
         result_dict = {row[0]: row[1] for row in averageCDollar}
         return result_dict
@@ -255,5 +248,5 @@ if __name__ == "__main__":
             ],
         }
         db.insertCDollarData(data)
-        db.cleanup()
+        db.cleanup(datetime.now())
         time.sleep(5)
