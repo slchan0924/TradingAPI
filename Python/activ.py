@@ -10,6 +10,7 @@ from activfinancial.constants import *
 from start_connection import createConnection
 import time
 import shutil
+import math
 import os
 
 current_time_in_NY = dt.now(pytz.timezone("America/New_York"))  # dt(2024, 11, 11)
@@ -172,9 +173,10 @@ class SubscriptionHandler:
                 usym_data[msg.symbol]["AskTime"] = askTime
             if check_string(bidTime):
                 usym_data[msg.symbol]["BidTime"] = bidTime
-            print("{}: {}".format(msg.symbol, usym_data[msg.symbol]))
-            if msg.symbol == "SPY.Q" and debug_mode:
-                print("SPX: {}".format(usym_data["=SPX.WI"]))
+            if debug_mode:
+                print("{}: {}".format(msg.symbol, usym_data[msg.symbol]))
+                if msg.symbol == "SPY.Q":
+                    print("SPX: {}".format(usym_data["=SPX.WI"]))
         else:
             underlying, sym = msg.symbol.split("/")
             usym = "SPX" if underlying == "SPXW" else underlying
@@ -340,7 +342,12 @@ class SpreadCalculation(createConnection):
             self.target_symbols = target_symbols
 
     def subscribe(self, activ_session: Session):
-        symbols_to_subscribe = self.symbols_all.tolist() if hasattr(self, "symbols_all") else []
+        # symbols_all is an empty list to start with, but concat to an array when there are valid symbols
+        symbols_to_subscribe = (
+            self.symbols_all.tolist() 
+            if hasattr(self, "symbols_all") and not isinstance(self.symbols_all, list) 
+            else []
+        )
         for key in usym_data.keys():
             symbols_to_subscribe.append(key)
         print("Subscribing to Symbols.")
@@ -766,12 +773,13 @@ class SpreadCalculation(createConnection):
                 )
             else:
                 c_avg = format_number(round(c_dollar))
+            sell_dte_days = math.ceil((sell_dte - current_time_in_NY.replace(tzinfo=None)).total_seconds() / (24 * 3600))
             return {
                 "C": round(c, 2),
                 "C$": format_number(round(c_dollar)),
                 "C$/DDiff": format_number(round(c_dollar_ddif)),
                 "CAvg": c_avg,
-                "Sell-DTE": (sell_dte - current_time_in_NY.replace(tzinfo=None)).days,
+                "Sell-DTE": sell_dte_days,
                 "Diff": (sell_dte - buy_dte).days,
                 "%UL": round(sell_strike["Strike"] / sell_u_price * 100, 2),
                 "K-Diff": (
@@ -814,7 +822,7 @@ class SpreadCalculation(createConnection):
 
 if __name__ == "__main__":
     sc = SpreadCalculation()
-    sc.get_symbols(["SPY", "SPX", "QQQ"], ["10,3", "9,3"], "SPX", ["6,7"])
+    sc.get_symbols(["SPY", "SPX", "QQQ"], ["2,1"], "SPX", ["4,6"])
     sc.invoke_update_viewer()
     sesh = sc.connect_to_activ()
     sc.subscribe(sesh)

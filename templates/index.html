@@ -309,7 +309,6 @@
         
         const openedWindows = {};
         socket.on('buy_sell_pairs', (data) => {
-            console.log(JSON.stringify(data));
             const display = {
                 "showLongBidSize": document.getElementById('showLongBidVolume').checked,
                 "showLongAskSize": document.getElementById('showLongAskVolume').checked,
@@ -327,7 +326,6 @@
                         usym_display['quantity'] = $('input[name="contractsToExecute"]').val();
                         usym_display['cDiff'] = $('input[name="c_first_d"]').val();
                         usym_display['cDiff2'] = $('input[name="c_second_d"]').val();
-                        console.log(JSON.stringify(usym_display));
                         let newWindow;
                         let key = usym + ': ' + expiryRange;
                         if (!openedWindows[key] || openedWindows[key].closed) {
