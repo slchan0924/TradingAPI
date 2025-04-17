@@ -37,6 +37,7 @@ usym_data = {
     "SPY.Q": {"Underlying": "SPY", "Bid": 0, "Ask": 0, "Mid": 536.3},
     "=SPX.WI": {"Underlying": "SPX", "Bid": 0, "Ask": 0, "Mid": 5363},
 }
+pairs_logging = {}
 debug_mode = False
 original_directory = os.path.dirname(os.getcwd())
 snapshot_path = os.path.join(original_directory, "SnapshotViewer", "opra_snapshot.txt")
@@ -728,11 +729,22 @@ class SpreadCalculation(createConnection):
                                     usym_price,
                                     c_average,
                                 )
-                                if c_dollar_result is not None:
-                                    # print(c_dollar_result)
+                                if c_dollar_result is not None: # and float(c_dollar_result['C$'].replace(",", "")) > 0:
                                     buy_sell_pairs[symbol][expiry_range].append(
                                         c_dollar_result
                                     )
+        current_time = dt.now().strftime("%Y-%m-%d %H:%M:%S")
+        for key, ranges_dict in buy_sell_pairs.items():
+            if key not in pairs_logging:
+                pairs_logging[key] = {}
+            for ranges, pairs in ranges_dict.items():
+                count = len(pairs)
+                if count > 0:
+                    if ranges not in pairs_logging[key]:
+                        print("[{}] NEW: {} on expiration {} has {} eligible pairs".format(current_time, key, ranges, count))
+                    pairs_logging[key][ranges] = count
+                    if count != pairs_logging[key][ranges]:
+                        print("[{}] UPDATE: {} on expiration {} has {} eligible pairs".format(current_time, key, ranges, count))
         return buy_sell_pairs
 
     def subscribe_to_symbols(

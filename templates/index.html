@@ -315,6 +315,7 @@
                 "showShortBidSize": document.getElementById('showShortBidVolume').checked,
                 "showShortAskSize": document.getElementById('showShortAskVolume').checked,
             };
+            const urlsToOpen = [];
             Object.keys(data).forEach((usym) => {
                 Object.keys(data[usym]).forEach( (expiryRange) => {
                     const underlyingPairs = data[usym][expiryRange];
@@ -326,29 +327,12 @@
                         usym_display['quantity'] = $('input[name="contractsToExecute"]').val();
                         usym_display['cDiff'] = $('input[name="c_first_d"]').val();
                         usym_display['cDiff2'] = $('input[name="c_second_d"]').val();
-                        let newWindow;
                         let key = usym + ': ' + expiryRange;
-                        if (!openedWindows[key] || openedWindows[key].closed) {
-                            // Open a new tab and store the reference
-                            openedWindows[key] = window.open(`/pairs/${usym}/${expiryRange}`, '_blank');
-                            // Check if the new window is closed
-                            const checkIfClosed = setInterval(() => {
-                                if (openedWindows[key].closed) {
-                                    clearInterval(checkIfClosed); // Stop checking
-                                    openedWindows[key] = null;
-                                }
-                            }, 1000);
-                            openedWindows[key].onload = () => {
-                                openedWindows[key].postMessage(usym_display, "*");
-                            }
-                            console.log(`Writing to pairs and expiry combo ${key}`);
-                        } else {
-                            console.log(`Buy/Sell Pairs: Sending data to existing pairs and expiry combo tab ${key}`);
-                            openedWindows[key].postMessage(usym_display, "*");
-                        }
+                        urlsToOpen.push({ key, usym_display, url: `/pairs/${usym}/${expiryRange}` });
                     }
                 })
             });
+            openTabs(urlsToOpen);
         })
         let spreadWindow;
         socket.on('put_spread_pairs', (data) => {
@@ -372,6 +356,34 @@
                 }
             }
         })
+
+        function openTabs(urls) {
+            urls.forEach(({ key, usym_display, url }, index) => {
+                setTimeout(() => {
+                    if (!openedWindows[key] || openedWindows[key].closed) {
+                        // Open a new tab and store the reference
+                        openedWindows[key] = window.open(url, '_blank');
+                        
+                        // Check if the new window is closed
+                        const checkIfClosed = setInterval(() => {
+                            if (openedWindows[key].closed) {
+                                clearInterval(checkIfClosed); // Stop checking
+                                openedWindows[key] = null;
+                            }
+                        }, 1000);
+
+                        openedWindows[key].onload = () => {
+                            openedWindows[key].postMessage(usym_display, "*");
+                        };
+
+                        console.log(`Writing to pairs and expiry combo ${key}`);
+                    } else {
+                        console.log(`Buy/Sell Pairs: Sending data to existing pairs and expiry combo tab ${key}`);
+                        openedWindows[key].postMessage(usym_display, "*");
+                    }
+                }, index * 100); // 100 ms delay between openings
+            });
+        }
     </script>
 </body>
 </html>
