@@ -33,9 +33,9 @@ option_data = {}
 # note that SPX symbol doesn't exist, we just need to populate it via SPY * 10
 usym_map = {"QQQ": "QQQ.Q", "SPY": "SPY.Q", "SPX": "=SPX.WI"}
 usym_data = {
-    "QQQ.Q": {"Underlying": "QQQ", "Bid": 0, "Ask": 0, "Mid": 454.4},
-    "SPY.Q": {"Underlying": "SPY", "Bid": 0, "Ask": 0, "Mid": 536.3},
-    "=SPX.WI": {"Underlying": "SPX", "Bid": 0, "Ask": 0, "Mid": 5363},
+    "QQQ.Q": {"Underlying": "QQQ", "Bid": 0, "Ask": 0, "Mid": 0},
+    "SPY.Q": {"Underlying": "SPY", "Bid": 0, "Ask": 0, "Mid": 0},
+    "=SPX.WI": {"Underlying": "SPX", "Bid": 0, "Ask": 0, "Mid": 0},
 }
 pairs_logging = {}
 debug_mode = False
@@ -459,13 +459,13 @@ class SpreadCalculation(createConnection):
             elem: pd.DataFrame() for elem in option_symbols["Underlying"].unique()
         }
         for key in option_symbols_df.keys():
-            key_to_read = "SPX" if key == "SPXW" else key
-            mid_price = usym_data[usym_map[key_to_read]]["Mid"]
+            # key_to_read = "SPX" if key == "SPXW" else key
+            # mid_price = usym_data[usym_map[key_to_read]]["Mid"]
             option_symbols_df[key] = option_symbols[:][
                 (option_symbols["Underlying"] == key)
                 & (option_symbols["OptionType"] == "P")
-                & (option_symbols["StrikePrice"] / mid_price > 0.8)
-                & (option_symbols["StrikePrice"] <= mid_price)
+                # & (option_symbols["StrikePrice"] / mid_price > 0.7)
+                # & (option_symbols["StrikePrice"] <= mid_price)
             ]
             symbols_to_sub = np.concatenate(
                 (symbols_to_sub, option_symbols_df[key]["Symbol"].to_numpy().flatten())
@@ -742,9 +742,9 @@ class SpreadCalculation(createConnection):
                 if count > 0:
                     if ranges not in pairs_logging[key]:
                         print("[{}] NEW: {} on expiration {} has {} eligible pairs".format(current_time, key, ranges, count))
-                    pairs_logging[key][ranges] = count
-                    if count != pairs_logging[key][ranges]:
+                    elif count != pairs_logging[key][ranges]:
                         print("[{}] UPDATE: {} on expiration {} has {} eligible pairs".format(current_time, key, ranges, count))
+                    pairs_logging[key][ranges] = count
         return buy_sell_pairs
 
     def subscribe_to_symbols(
@@ -834,10 +834,10 @@ class SpreadCalculation(createConnection):
 
 if __name__ == "__main__":
     sc = SpreadCalculation()
-    sc.get_symbols(["SPY", "SPX", "QQQ"], ["2,1"], "SPX", ["4,6"])
+    sc.get_symbols(["SPY", "SPX", "QQQ"], ["7,3", "8,3"], "SPX", ["4,6"])
     sc.invoke_update_viewer()
     sesh = sc.connect_to_activ()
-    sc.subscribe(sesh)
-    #sc.subscribe_usym(sesh)
+    #sc.subscribe(sesh)
+    sc.subscribe_usym(sesh)
     # sc.get_put_spread_pairs([97, 96], [50, 100], ["7,8", "7,8"])
     # sc.get_buy_sell_pairs(["SPY", "SPX", "QQQ"], ["82-86", "82-86", "82-86"], ["10,4"], 50)
