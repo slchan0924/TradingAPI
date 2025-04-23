@@ -19,7 +19,7 @@ import asyncio
 lock = threading.Lock()
 
 # Import from other python scripts
-from activ import SpreadCalculation #, usym_data, usym_map
+from activ import SpreadCalculation, pairs_found #, usym_data, usym_map
 # from sre import SRERisk
 # from silexx import silexx_positions_and_trades
 from sqlite3db import createDatabase
@@ -216,7 +216,11 @@ def process_input(form_data: dict, tz_selected, c_avg_start: datetime, c_avg_end
                     db.insertCDollarData(buy_sell_pairs, pairs_current_run_time)
                     pairs_start_run_time = pairs_current_run_time
                 buy_sell_pairs_persist = buy_sell_pairs
-                socketio.emit("buy_sell_pairs", buy_sell_pairs)
+                data = {
+                    "pairs": buy_sell_pairs,
+                    "order": pairs_found["BuySell"],
+                }
+                socketio.emit("buy_sell_pairs", data)
             except Exception as error:
                 print("An exception occurred while getting buy/sell pairs:", error)
             time.sleep(1)

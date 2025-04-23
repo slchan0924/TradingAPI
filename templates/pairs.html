@@ -219,11 +219,19 @@
             // Toggle to control whether to show the bid/ask sizes
             modifyColumns(event);
             const pairsData = event.data.inputData;
+            const displayOrder = event.data.displayOrder;
             const cDiff = parseFloat(event.data.cDiff.replace(/,/g, ''));
             const cDiff2 = parseFloat(event.data.cDiff2.replace(/,/g, ''));
-            pairsData.sort( (a, b) => {
-                return parseFloat(b["C$"]) - parseFloat(a["C$"]);
-            })
+            // order by custom sort function
+            // return C$ in descending order!
+            pairsData.sort((a, b) => {
+                // Find corresponding objects in array2
+                const objA = displayOrder.find(obj => obj.SellSymbol === a["Sell Symbol"] && obj.BuySymbol === a["Buy Symbol"]);
+                const objB = displayOrder.find(obj => obj.SellSymbol === b["Sell Symbol"] && obj.BuySymbol === b["Buy Symbol"]);
+                
+                // Compare the C$ values from array2
+                return (objA ? objA["C$"] : 0) - (objB ? objB["C$"] : 0);
+            });
             pairsData.forEach((pair) => {
                 const tr = document.createElement('tr');
                 currentHeaders.forEach( (col) => {

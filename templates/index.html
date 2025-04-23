@@ -306,27 +306,46 @@
             $('#data-form-sre').on('submit', startSRECalcs);
         });
         */
+
+        function getInputValues() {
+            return {
+                quantity: $('input[name="contractsToExecute"]').val(),
+                cDiff: $('input[name="c_first_d"]').val(),
+                cDiff2: $('input[name="c_second_d"]').val(),
+                cAvgStartTime: $('input[name="c_avg_start_time"]').val(),
+                cAvgEndTime: $('input[name="c_avg_end_time"]').val(),
+                showLongBidVolume: $('input[name="showLongBidVolume"]').is(':checked'),
+                showLongAskVolume: $('input[name="showLongAskVolume"]').is(':checked'),
+                showShortBidVolume: $('input[name="showShortBidVolume"]').is(':checked'),
+                showShortAskVolume: $('input[name="showShortAskVolume"]').is(':checked')
+            };
+        }
         
         const openedWindows = {};
         socket.on('buy_sell_pairs', (data) => {
-            const display = {
-                "showLongBidSize": document.getElementById('showLongBidVolume').checked,
-                "showLongAskSize": document.getElementById('showLongAskVolume').checked,
-                "showShortBidSize": document.getElementById('showShortBidVolume').checked,
-                "showShortAskSize": document.getElementById('showShortAskVolume').checked,
-            };
+            const inputValues = getInputValues();
             const urlsToOpen = [];
-            Object.keys(data).forEach((usym) => {
-                Object.keys(data[usym]).forEach( (expiryRange) => {
-                    const underlyingPairs = data[usym][expiryRange];
+            Object.keys(data["pairs"]).forEach((usym) => {
+                Object.keys(data["pairs"][usym]).forEach( (expiryRange) => {
+                    const underlyingPairs = data["pairs"][usym][expiryRange];
+                    const displayOrder = data["order"][usym][expiryRange];
                     // Don't popup a new page if there are no pairs found
                     if (underlyingPairs.length > 0) {
-                        let usym_display = JSON.parse(JSON.stringify(display));
-                        usym_display['inputData'] = underlyingPairs;
-                        usym_display['usym'] = usym;
-                        usym_display['quantity'] = $('input[name="contractsToExecute"]').val();
-                        usym_display['cDiff'] = $('input[name="c_first_d"]').val();
-                        usym_display['cDiff2'] = $('input[name="c_second_d"]').val();
+                        let usym_display = {
+                            inputData: underlyingPairs,
+                            usym: usym,
+                            displayOrder: displayOrder,
+                            quantity: inputValues.quantity,
+                            cDiff: inputValues.cDiff,
+                            cDiff2: inputValues.cDiff2,
+                            cAvgStartTime: inputValues.cAvgStartTime,
+                            cAvgEndTime: inputValues.cAvgEndTime,
+                            showLongBidSize: inputValues.showLongBidSize,
+                            showLongAskSize: inputValues.showLongAskSize,
+                            showShortBidSize: inputValues.showShortBidSize,
+                            showShortAskSize: inputValues.showShortAskSize,
+                        };
+                        console.log("Pairs Data for " + usym + ": " + JSON.stringify(usym_display));
                         let key = usym + ': ' + expiryRange;
                         urlsToOpen.push({ key, usym_display, url: `/pairs/${usym}/${expiryRange}` });
                     }

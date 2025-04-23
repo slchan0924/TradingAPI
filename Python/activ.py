@@ -45,6 +45,16 @@ snapshot_path_editor = os.path.join(original_directory, "TradingAPI", "SnapshotV
 snapshot_path_copy = os.path.join(original_directory, "SnapshotViewer", "opra_snapshot_copy.txt")
 snapshot_path_copy_editor = os.path.join(original_directory, "TradingAPI", "SnapshotViewer", "opra_snapshot_copy.txt")
 
+# Underlying -> Date Range
+pairs_found = {
+    "PutSpread": [],
+    "BuySell": {
+        "SPX": {},
+        "SPY": {},
+        "QQQ": {},
+    },
+}
+
 def format_number(x):
     return f"{x:,}"
 
@@ -666,78 +676,104 @@ class SpreadCalculation(createConnection):
                     )
                 for expiry_range in expiry_ranges:
                     buy_sell_pairs[symbol][expiry_range] = []
-                    sell_date, buy_date = map(
-                        lambda x: current_time_in_NY + timedelta(days=int(x)),
-                        expiry_range.split(","),
-                    )
-                    eligible_sell_strikes = symbols_df[
-                        (symbols_df["ExpirationDate"].dt.date == sell_date.date())
-                        & (symbols_df["StrikePrice"] >= lower_strike)
-                        & (symbols_df["StrikePrice"] <= upper_strike)
-                    ]
-                    if symbol == "SPY":
-                        # If we sell SPY, we will only buy SPX!
-                        if "SPX" in symbols_df_all:
-                            spx_df = symbols_df_all["SPX"]
-                            eligible_buy_strikes = spx_df[
-                                spx_df["ExpirationDate"].dt.date == buy_date.date()
-                            ]
-                            buy_symbol = "SPX"
-                    else:
-                        eligible_buy_strikes = symbols_df_all[symbol][
-                            symbols_df["ExpirationDate"].dt.date == buy_date.date()
+                    if expiry_range not in pairs_found["BuySell"][symbol] or not pairs_found["BuySell"][symbol][expiry_range]:
+                        sell_date, buy_date = map(
+                            lambda x: current_time_in_NY + timedelta(days=int(x)),
+                            expiry_range.split(","),
+                        )
+                        eligible_sell_strikes = symbols_df[
+                            (symbols_df["ExpirationDate"].dt.date == sell_date.date())
+                            & (symbols_df["StrikePrice"] >= lower_strike)
+                            & (symbols_df["StrikePrice"] <= upper_strike)
                         ]
-                        buy_symbol = symbol
-                    # for each eligible sell strikes, look at the buy strikes and find the closest one that's within points over!
-                    if len(eligible_sell_strikes) > 0 and len(eligible_buy_strikes) > 0:
-                        for sell_strike in eligible_sell_strikes.itertuples(
-                            index=False
-                        ):
-                            strike_price = getattr(sell_strike, "StrikePrice")
-                            if symbol == "SPY":
-                                # Sell SPY, buy SPX, so target strike needs to multiply by 10
-                                target_strike = (
-                                    float(strike_price) + float(points_over)
-                                ) * 10
-                            elif symbol == "SPX":
-                                target_strike = (
-                                    float(strike_price) + float(points_over) * 10
-                                )
-                            else:
-                                # QQQ, no need do anything
-                                target_strike = float(strike_price) + float(points_over)
-                            closest_index = (
-                                (eligible_buy_strikes["StrikePrice"] - target_strike)
-                                .abs()
-                                .idxmin()
-                            )
-                            closest_buy_strike = eligible_buy_strikes.at[
-                                closest_index, "Symbol"
+                        if symbol == "SPY":
+                            # If we sell SPY, we will only buy SPX!
+                            if "SPX" in symbols_df_all:
+                                spx_df = symbols_df_all["SPX"]
+                                eligible_buy_strikes = spx_df[
+                                    spx_df["ExpirationDate"].dt.date == buy_date.date()
+                                ]
+                                buy_symbol = "SPX"
+                        else:
+                            eligible_buy_strikes = symbols_df_all[symbol][
+                                symbols_df["ExpirationDate"].dt.date == buy_date.date()
                             ]
-                            sell_strike_symbol = getattr(sell_strike, "Symbol").split(
-                                "/"
-                            )[1]
-                            buy_strike_symbol = closest_buy_strike.split("/")[1]
-                            if (
-                                symbol in option_data and buy_symbol in option_data and
-                                sell_strike_symbol in option_data[symbol]
-                                and buy_strike_symbol in option_data[buy_symbol]
+                            buy_symbol = symbol
+                        # for each eligible sell strikes, look at the buy strikes and find the closest one that's within points over!
+                        if len(eligible_sell_strikes) > 0 and len(eligible_buy_strikes) > 0:
+                            for sell_strike in eligible_sell_strikes.itertuples(
+                                index=False
                             ):
-                                c_dollar_result = self.calc_c_dollar(
-                                    option_data[symbol][sell_strike_symbol],
-                                    option_data[buy_symbol][buy_strike_symbol],
-                                    usym_price,
-                                    c_average,
-                                )
-                                if c_dollar_result is not None: # and float(c_dollar_result['C$'].replace(",", "")) > 0:
-                                    buy_sell_pairs[symbol][expiry_range].append(
-                                        c_dollar_result
+                                strike_price = getattr(sell_strike, "StrikePrice")
+                                if symbol == "SPY":
+                                    # Sell SPY, buy SPX, so target strike needs to multiply by 10
+                                    target_strike = (
+                                        float(strike_price) + float(points_over)
+                                    ) * 10
+                                elif symbol == "SPX":
+                                    target_strike = (
+                                        float(strike_price) + float(points_over) * 10
                                     )
+                                else:
+                                    # QQQ, no need do anything
+                                    target_strike = float(strike_price) + float(points_over)
+                                closest_index = (
+                                    (eligible_buy_strikes["StrikePrice"] - target_strike)
+                                    .abs()
+                                    .idxmin()
+                                )
+                                closest_buy_strike = eligible_buy_strikes.at[
+                                    closest_index, "Symbol"
+                                ]
+                                sell_strike_symbol = getattr(sell_strike, "Symbol").split(
+                                    "/"
+                                )[1]
+                                buy_strike_symbol = closest_buy_strike.split("/")[1]
+                                if (
+                                    symbol in option_data and buy_symbol in option_data and
+                                    sell_strike_symbol in option_data[symbol]
+                                    and buy_strike_symbol in option_data[buy_symbol]
+                                ):
+                                    c_dollar_result = self.calc_c_dollar(
+                                        option_data[symbol][sell_strike_symbol],
+                                        option_data[buy_symbol][buy_strike_symbol],
+                                        usym_price,
+                                        c_average,
+                                    )
+                                    if c_dollar_result is not None: # and float(c_dollar_result['C$'].replace(",", "")) > 0:
+                                        buy_sell_pairs[symbol][expiry_range].append(
+                                            c_dollar_result
+                                        )
+                    else:
+                        existing_results = pairs_found["BuySell"][symbol][expiry_range]
+                        for pair in existing_results:
+                            c_dollar_result = self.calc_c_dollar(
+                                option_data[symbol][pair["SellSymbol"]],
+                                option_data["SPX" if symbol == "SPY" else symbol][pair["BuySymbol"]],
+                                usym_price,
+                                c_average,
+                            )
+                            if c_dollar_result is not None: # and float(c_dollar_result['C$'].replace(",", "")) > 0:
+                                buy_sell_pairs[symbol][expiry_range].append(
+                                    c_dollar_result
+                                )
         current_time = dt.now().strftime("%Y-%m-%d %H:%M:%S")
         for key, ranges_dict in buy_sell_pairs.items():
             if key not in pairs_logging:
                 pairs_logging[key] = {}
             for ranges, pairs in ranges_dict.items():
+                # this part only do if it wasn't declared!
+                if ranges not in pairs_found["BuySell"][key]:
+                    pairs_found["BuySell"][key][ranges] = []
+                if len(pairs_found["BuySell"][key][ranges]) == 0:
+                    for pair in pairs:
+                        pairs_found["BuySell"][key][ranges].append({
+                            "BuySymbol": pair["Buy Symbol"],
+                            "SellSymbol": pair["Sell Symbol"],
+                            "C$": pair["C$"],
+                        })
+                    # reorder data by C$
+                    pairs_found["BuySell"][key][ranges] = sorted(pairs_found["BuySell"][key][ranges], key=lambda x: x["C$"], reverse=True)
                 count = len(pairs)
                 if count > 0:
                     if ranges not in pairs_logging[key]:
@@ -834,10 +870,10 @@ class SpreadCalculation(createConnection):
 
 if __name__ == "__main__":
     sc = SpreadCalculation()
-    sc.get_symbols(["SPY", "SPX", "QQQ"], ["7,3", "8,3"], "SPX", ["4,6"])
+    sc.get_symbols(["SPY", "SPX", "QQQ"], ["7,2", "8,2"], "SPX", ["4,6"])
     sc.invoke_update_viewer()
     sesh = sc.connect_to_activ()
-    #sc.subscribe(sesh)
-    sc.subscribe_usym(sesh)
+    sc.subscribe(sesh)
+    #sc.subscribe_usym(sesh)
     # sc.get_put_spread_pairs([97, 96], [50, 100], ["7,8", "7,8"])
-    # sc.get_buy_sell_pairs(["SPY", "SPX", "QQQ"], ["82-86", "82-86", "82-86"], ["10,4"], 50)
+    sc.get_buy_sell_pairs(["SPY", "SPX", "QQQ"], ["82-86", "82-86", "82-86"], ["10,4"], 50)
