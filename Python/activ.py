@@ -770,10 +770,10 @@ class SpreadCalculation(createConnection):
                         pairs_found["BuySell"][key][ranges].append({
                             "BuySymbol": pair["Buy Symbol"],
                             "SellSymbol": pair["Sell Symbol"],
-                            "C$": pair["C$"],
+                            "%UL": pair["%UL"],
                         })
                     # reorder data by C$
-                    pairs_found["BuySell"][key][ranges] = sorted(pairs_found["BuySell"][key][ranges], key=lambda x: float(x["C$"].replace(",", "")), reverse=True)
+                    pairs_found["BuySell"][key][ranges] = sorted(pairs_found["BuySell"][key][ranges], key=lambda x: x["%UL"], reverse=True)
                 count = len(pairs)
                 if count > 0:
                     if ranges not in pairs_logging[key]:
