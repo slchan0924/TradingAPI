@@ -85,19 +85,21 @@ class createDatabase:
                     sell_ic = position_data["Sell IceChat"]
                     sell_symbol = position_data["Sell Symbol"]
                     c_dollar = position_data["C$"]
-                    print("[{}] Sell: {}, Buy: {}, C$: {}".format(timestamp, sell_ic, buy_ic, c_dollar))
-                    data_to_insert.append(
-                        tuple(
-                            (
-                                sell_symbol
-                                + "-"
-                                + buy_symbol,
-                                underlying,
-                                float(c_dollar.replace(",", "")),
-                                current_time,
+                    float_c_dollar = float(c_dollar.replace(",", ""))
+                    if float_c_dollar != 0:
+                        print("[{}] Sell: {}, Buy: {}, C$: {}".format(timestamp, sell_ic, buy_ic, c_dollar))
+                        data_to_insert.append(
+                            tuple(
+                                (
+                                    sell_symbol
+                                    + "-"
+                                    + buy_symbol,
+                                    underlying,
+                                    float_c_dollar,
+                                    current_time,
+                                )
                             )
                         )
-                    )
 
         cursor.executemany(
             """
