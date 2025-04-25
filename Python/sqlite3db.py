@@ -76,17 +76,24 @@ class createDatabase:
         cursor = self.Cursor_Avg
         connection = self.Connection_Avg
         data_to_insert = []
+        timestamp = current_time.strftime("%Y-%m-%d %H:%M:%S")
         for underlying in data:
             for expiry_range in data[underlying]:
                 for position_data in data[underlying][expiry_range]:
+                    buy_symbol = position_data["Buy Symbol"]
+                    buy_ic = position_data["Buy IceChat"]
+                    sell_ic = position_data["Sell IceChat"]
+                    sell_symbol = position_data["Sell Symbol"]
+                    c_dollar = position_data["C$"]
+                    print("[{}] Sell: {}, Buy: {}, C$: {}".format(timestamp, sell_ic, buy_ic, c_dollar))
                     data_to_insert.append(
                         tuple(
                             (
-                                position_data["Sell Symbol"]
+                                sell_symbol
                                 + "-"
-                                + position_data["Buy Symbol"],
+                                + buy_symbol,
                                 underlying,
-                                float(position_data["C$"].replace(",", "")),
+                                float(c_dollar.replace(",", "")),
                                 current_time,
                             )
                         )

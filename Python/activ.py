@@ -729,31 +729,104 @@ class SpreadCalculation(createConnection):
                                     "/"
                                 )[1]
                                 buy_strike_symbol = closest_buy_strike.split("/")[1]
-                                if (
-                                    symbol in option_data and buy_symbol in option_data and
-                                    sell_strike_symbol in option_data[symbol]
-                                    and buy_strike_symbol in option_data[buy_symbol]
-                                ):
+                                if symbol in option_data and buy_symbol in option_data:
+                                    if buy_strike_symbol in option_data[buy_symbol]:
+                                        buy_strike_obj = option_data[buy_symbol][
+                                            buy_strike_symbol
+                                        ]
+                                    else:
+                                        buy_strike_price = eligible_buy_strikes.at[closest_index, "StrikePrice"]
+                                        buy_strike_expiry = eligible_buy_strikes.at[closest_index, "ExpirationDate"]
+                                        buy_usym_display = eligible_buy_strikes.at[closest_index, "Underlying"]
+                                        buy_opt_type = eligible_buy_strikes.at[closest_index, "OptionType"]
+                                        buy_strike_obj = {                                       
+                                            "DisplayUnderlying": buy_usym_display,
+                                            "Symbol": buy_strike_symbol,
+                                            "Mid": 0,
+                                            "Bid": 0,
+                                            "Ask": 0,
+                                            "BidSize": 0,
+                                            "AskSize": 0,
+                                            "Expiry": buy_strike_expiry,
+                                            "OptionType": buy_opt_type,
+                                            "Strike": buy_strike_price
+                                        }
+                                    if sell_strike_symbol in option_data[symbol]:
+                                        sell_strike_obj = option_data[symbol][sell_strike_symbol]
+                                    else:
+                                        sell_usym_display = getattr(sell_strike, "Underlying")
+                                        sell_strike_expiry = getattr(sell_strike, "ExpirationDate") 
+                                        sell_opt_type = getattr(sell_strike, "OptionType")
+                                        sell_strike_obj = {
+                                            "DisplayUnderlying": sell_usym_display,
+                                            "Symbol": sell_strike_symbol,
+                                            "Mid": 0,
+                                            "Bid": 0,
+                                            "Ask": 0,
+                                            "BidSize": 0,
+                                            "AskSize": 0,
+                                            "Expiry": sell_strike_expiry,
+                                            "OptionType": sell_opt_type,
+                                            "Strike": strike_price
+                                        }
                                     c_dollar_result = self.calc_c_dollar(
-                                        option_data[symbol][sell_strike_symbol],
-                                        option_data[buy_symbol][buy_strike_symbol],
+                                        sell_strike_obj,
+                                        buy_strike_obj,
                                         usym_price,
                                         c_average,
                                     )
-                                    if c_dollar_result is not None: # and float(c_dollar_result['C$'].replace(",", "")) > 0:
+                                    if c_dollar_result is not None:
                                         buy_sell_pairs[symbol][expiry_range].append(
                                             c_dollar_result
                                         )
                     else:
                         existing_results = pairs_found["BuySell"][symbol][expiry_range]
                         for pair in existing_results:
+                            if pair["BuySymbol"] in option_data["SPX" if symbol == "SPY" else symbol]:
+                                buy_data = option_data["SPX" if symbol == "SPY" else symbol][pair["BuySymbol"]]
+                            else:
+                                buy_full_symbol = pair["BuyUsym"] + "/" + pair["BuySymbol"]
+                                buy_df = symbols_df_all["SPX" if pair["BuyUsym"] == "SPXW" else pair["BuyUsym"]]
+                                buy_df_row = buy_df[buy_df["Symbol"] == buy_full_symbol].iloc[0]
+                                buy_data = {
+                                    "DisplayUnderlying": pair["BuyUsym"],
+                                    "Symbol": pair["BuySymbol"],
+                                    "Mid": 0,
+                                    "Bid": 0,
+                                    "Ask": 0,
+                                    "BidSize": 0,
+                                    "AskSize": 0,
+                                    "Expiry": buy_df_row["ExpirationDate"],
+                                    "OptionType": buy_df_row["OptionType"],
+                                    "Strike": buy_df_row["StrikePrice"],
+                                }
+                            
+                            if pair["SellSymbol"] in option_data[symbol]:
+                                sell_data = option_data[symbol][pair["SellSymbol"]]
+                            else:
+                                sell_full_symbol = pair["SellUsym"] + "/" + pair["SellSymbol"]
+                                sell_df = symbols_df_all["SPX" if pair["SellUsym"] == "SPXW" else pair["SellUsym"]]
+                                sell_df_row = sell_df[sell_df["Symbol"] == sell_full_symbol].iloc[0]
+                                sell_data = {
+                                    "DisplayUnderlying": pair["SellUsym"],
+                                    "Symbol": pair["SellSymbol"],
+                                    "Mid": 0,
+                                    "Bid": 0,
+                                    "Ask": 0,
+                                    "BidSize": 0,
+                                    "AskSize": 0,
+                                    "Expiry": sell_df_row["ExpirationDate"],
+                                    "OptionType": sell_df_row["OptionType"],
+                                    "Strike": sell_df_row["StrikePrice"],
+                                }
+
                             c_dollar_result = self.calc_c_dollar(
-                                option_data[symbol][pair["SellSymbol"]],
-                                option_data["SPX" if symbol == "SPY" else symbol][pair["BuySymbol"]],
+                                sell_data,
+                                buy_data,
                                 usym_price,
                                 c_average,
                             )
-                            if c_dollar_result is not None: # and float(c_dollar_result['C$'].replace(",", "")) > 0:
+                            if c_dollar_result is not None:
                                 buy_sell_pairs[symbol][expiry_range].append(
                                     c_dollar_result
                                 )
@@ -768,6 +841,8 @@ class SpreadCalculation(createConnection):
                 if len(pairs_found["BuySell"][key][ranges]) == 0:
                     for pair in pairs:
                         pairs_found["BuySell"][key][ranges].append({
+                            "BuyUsym": pair["Buy Usym"],
+                            "SellUsym": pair["Sell Usym"],
                             "BuySymbol": pair["Buy Symbol"],
                             "SellSymbol": pair["Sell Symbol"],
                             "%UL": pair["%UL"],
@@ -807,65 +882,67 @@ class SpreadCalculation(createConnection):
         else:
             sell_px = sell_strike["Mid"]
             buy_px = buy_strike["Mid"]
-        if sell_px != 0 and buy_px != 0:
-            c = sell_px - buy_px
-            c_dollar = 1000 * c * 100
-            sell_dte = dt.strptime(sell_strike["Expiry"], "%Y-%m-%d")
-            buy_dte = dt.strptime(buy_strike["Expiry"], "%Y-%m-%d")
-            c_dollar_ddif = c_dollar / (sell_dte - buy_dte).days
-            if sell_strike["Symbol"] + "-" + buy_strike["Symbol"] in c_average:
-                c_avg = format_number(
-                    round(
-                        c_average[sell_strike["Symbol"] + "-" + buy_strike["Symbol"]]
-                    )
+        # To ensure we don't calculate a bad C$ when either side didn't have proper quotes
+        c = 0 if sell_px == 0 or buy_px == 0 else sell_px - buy_px
+        c_dollar = 1000 * c * 100
+        sell_dte = sell_strike["Expiry"] if isinstance(sell_strike["Expiry"], pd.Timestamp) else dt.strptime(sell_strike["Expiry"], "%Y-%m-%d")
+        buy_dte = buy_strike["Expiry"] if isinstance(buy_strike["Expiry"], pd.Timestamp) else dt.strptime(buy_strike["Expiry"], "%Y-%m-%d")
+        c_dollar_ddif = c_dollar / (sell_dte - buy_dte).days
+        if sell_strike["Symbol"] + "-" + buy_strike["Symbol"] in c_average:
+            c_avg = format_number(
+                round(
+                    c_average[sell_strike["Symbol"] + "-" + buy_strike["Symbol"]]
                 )
-            else:
-                c_avg = format_number(round(c_dollar))
-            sell_dte_days = math.ceil((sell_dte - current_time_in_NY.replace(tzinfo=None)).total_seconds() / (24 * 3600))
-            return {
-                "C": round(c, 2),
-                "C$": format_number(round(c_dollar)),
-                "C$/DDiff": format_number(round(c_dollar_ddif)),
-                "CAvg": c_avg,
-                "Sell-DTE": sell_dte_days,
-                "Diff": (sell_dte - buy_dte).days,
-                "%UL": round(sell_strike["Strike"] / sell_u_price * 100, 2),
-                "K-Diff": (
-                    round(buy_strike["Strike"] - sell_strike["Strike"] * 10)
-                    if sell_usym == "SPY"
-                    else round(buy_strike["Strike"] - sell_strike["Strike"])
-                ),
-                "Sell Symbol": sell_strike["Symbol"],
-                "Buy Symbol": buy_strike["Symbol"],
-                "Sell-B": sell_strike["Bid"],
-                "Sell-B#": sell_strike["BidSize"],
-                "Sell-A": sell_strike["Ask"],
-                "Sell-A#": sell_strike["AskSize"],
-                "Buy-B": buy_strike["Bid"],
-                "Buy-B#": buy_strike["BidSize"],
-                "Buy-A": buy_strike["Ask"],
-                "Buy-A#": buy_strike["AskSize"],
-                "Sell IceChat": (
-                    sell_usym
-                    + " "
-                    + sell_dte.strftime("%b %d")
-                    + ", "
-                    + str(int(sell_strike["Strike"]))
-                    + " puts"
-                    if sell_strike["OptionType"] == "P"
-                    else " calls"
-                ),
-                "Buy IceChat": (
-                    buy_usym
-                    + " "
-                    + buy_dte.strftime("%b %d")
-                    + ", "
-                    + str(int(buy_strike["Strike"]))
-                    + " puts"
-                    if buy_strike["OptionType"] == "P"
-                    else " calls"
-                ),
-            }
+            )
+        else:
+            c_avg = format_number(round(c_dollar))
+        sell_dte_days = math.ceil((sell_dte - current_time_in_NY.replace(tzinfo=None)).total_seconds() / (24 * 3600))
+        return {
+            "C": round(c, 2),
+            "C$": format_number(round(c_dollar)),
+            "C$/DDiff": format_number(round(c_dollar_ddif)),
+            "CAvg": c_avg,
+            "Sell-DTE": sell_dte_days,
+            "Diff": (sell_dte - buy_dte).days,
+            "%UL": round(sell_strike["Strike"] / sell_u_price * 100, 2),
+            "K-Diff": (
+                round(buy_strike["Strike"] - sell_strike["Strike"] * 10)
+                if sell_usym == "SPY"
+                else round(buy_strike["Strike"] - sell_strike["Strike"])
+            ),
+            "Sell Symbol": sell_strike["Symbol"],
+            "Buy Symbol": buy_strike["Symbol"],
+            "Sell Usym": sell_usym,
+            "Buy Usym": buy_usym,
+            "Sell-B": sell_strike["Bid"],
+            "Sell-B#": sell_strike["BidSize"],
+            "Sell-A": sell_strike["Ask"],
+            "Sell-A#": sell_strike["AskSize"],
+            "Buy-B": buy_strike["Bid"],
+            "Buy-B#": buy_strike["BidSize"],
+            "Buy-A": buy_strike["Ask"],
+            "Buy-A#": buy_strike["AskSize"],
+            "Sell IceChat": (
+                sell_usym
+                + " "
+                + sell_dte.strftime("%b %d")
+                + ", "
+                + str(int(sell_strike["Strike"]))
+                + " puts"
+                if sell_strike["OptionType"] == "P"
+                else " calls"
+            ),
+            "Buy IceChat": (
+                buy_usym
+                + " "
+                + buy_dte.strftime("%b %d")
+                + ", "
+                + str(int(buy_strike["Strike"]))
+                + " puts"
+                if buy_strike["OptionType"] == "P"
+                else " calls"
+            ),
+        }
 
 
 if __name__ == "__main__":
