@@ -136,13 +136,13 @@
     <div class="section" style="text-align: left">
         <h3>Output Configurations</h3>
         <label for="showLongBidVolume">Show Long Bid #</label>
-        <input type="checkbox" id="showLongBidVolume" name="showLongBidVolume" value="{{ showLongBidVolume }}"><br>
+        <input type="checkbox" id="showLongBidVolume" name="showLongBidVolume" {% if form_data.get("showLongBidVolume") %}checked{% endif %}><br>
         <label for="showLongAskVolume">Show Long Ask #</label>
-        <input type="checkbox" id="showLongAskVolume" name="showLongAskVolume" value="{{ showLongAskVolume }}"><br>
+        <input type="checkbox" id="showLongAskVolume" name="showLongAskVolume" {% if form_data.get("showLongAskVolume") %}checked{% endif %}><br>
         <label for="showShortBidVolume">Show Short Bid #</label>
-        <input type="checkbox" id="showShortBidVolume" name="showShortBidVolume" value="{{ showShortBidVolume }}"><br>
+        <input type="checkbox" id="showShortBidVolume" name="showShortBidVolume" {% if form_data.get("showShortBidVolume") %}checked{% endif %}><br>
         <label for="showShortAskVolume">Show Short Ask #</label>
-        <input type="checkbox" id="showShortAskVolume" name="showShortAskVolume" value="{{ showShortAskVolume }}"><br>
+        <input type="checkbox" id="showShortAskVolume" name="showShortAskVolume" {% if form_data.get("showShortAskVolume") %}checked{% endif %}><br>
     </div>
     <h2>Get Strikes</h2>
     <button type="submit" id="submit">Process Inputs</button>
@@ -314,10 +314,10 @@
                 cDiff2: $('input[name="c_second_d"]').val(),
                 cAvgStartTime: $('input[name="c_avg_start_time"]').val(),
                 cAvgEndTime: $('input[name="c_avg_end_time"]').val(),
-                showLongBidVolume: $('input[name="showLongBidVolume"]').is(':checked'),
-                showLongAskVolume: $('input[name="showLongAskVolume"]').is(':checked'),
-                showShortBidVolume: $('input[name="showShortBidVolume"]').is(':checked'),
-                showShortAskVolume: $('input[name="showShortAskVolume"]').is(':checked')
+                showLongBidSize: $('input[name="showLongBidVolume"]').is(':checked'),
+                showLongAskSize: $('input[name="showLongAskVolume"]').is(':checked'),
+                showShortBidSize: $('input[name="showShortBidVolume"]').is(':checked'),
+                showShortAskSize: $('input[name="showShortAskVolume"]').is(':checked')
             };
         }
         
