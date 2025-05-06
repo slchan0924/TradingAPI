@@ -15,12 +15,12 @@
                 <th>Short %UL</th>
                 <th>K-Diff</th>
                 <th>DTE</th>
-                <th class="clickable">C</th>
-                <th>MidAvg</th>
+                <!-- <th class="clickable">C</th> -->
+                <th>Mid</th>
                 <th>Sell Mid</th>
                 <th>Buy Mid</th>
-                <th>Short Leg IceChat</th>
-                <th>Long Leg IceChat</th>
+                <th>Short Leg</th>
+                <th>Long Leg</th>
             </tr>
         </thead>
         <tbody id="put-spread-body">
@@ -45,7 +45,11 @@
             }
             const pairsData = event.data;
             pairsData.sort( (a, b) => {
-                return parseFloat(b["C"]) - parseFloat(a["C"]);
+                const dteDiff = parseFloat(b["DTE"]) - parseFloat(a["DTE"]);
+                if (dteDiff == 0){
+                    return parseFloat(b["Short %UL"]) - parseFloat(a["Short %UL"]);
+                }
+                return dteDiff;
             })
             pairsData.forEach((pair) => {
                 const tr = document.createElement('tr');

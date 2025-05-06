@@ -309,39 +309,19 @@ class SpreadCalculation(createConnection):
 
         # put spreads
         for put_spread_expiry in put_spread_expiries:
-            put_spread_exp_start, put_spread_exp_end = map(
+            # put_spread_exp_start, put_spread_exp_end
+            put_spread_expiry_days = list(map(
                 lambda n: current_time_in_NY + timedelta(days=int(n)),
                 put_spread_expiry.split(","),
-            )
+            ))
+            # SPX and SPXW
             for put_spread_underlying in put_spread_underlyings:
-                if put_spread_exp_start.weekday() < 5:
-                    if (
-                        put_spread_underlying
-                        + "/"
-                        + put_spread_exp_start.strftime("%y%m%d")
-                        + "*.O"
-                        not in query_string
-                    ):
-                        query_string.append(
-                            put_spread_underlying
-                            + "/"
-                            + put_spread_exp_start.strftime("%y%m%d")
-                            + "*.O"
-                        )
-                if put_spread_exp_end.weekday() < 5:
-                    if (
-                        put_spread_underlying
-                        + "/"
-                        + put_spread_exp_end.strftime("%y%m%d")
-                        + "*.O"
-                        not in query_string
-                    ):
-                        query_string.append(
-                            put_spread_underlying
-                            + "/"
-                            + put_spread_exp_end.strftime("%y%m%d")
-                            + "*.O"
-                        )
+                for ps_expiry in put_spread_expiry_days:
+                    # if the date isn't a weekend, add to query_string if it wasn't there already!
+                    if ps_expiry.weekday() < 5:
+                        wildcard_symbol = put_spread_underlying + "/" + ps_expiry.strftime("%y%m%d") + "*.O"
+                        if wildcard_symbol not in query_string:
+                            query_string.append(wildcard_symbol)
 
         self.query_string = ";".join(query_string)
         if (
@@ -510,10 +490,10 @@ class SpreadCalculation(createConnection):
                     for index, ul_pct in enumerate(ul_pcts):
                         target_price = float(spx_price) * float(ul_pct) / 100
                         pts_wide = ul_pts_wide[index]
-                        expiry_days = map(
+                        expiry_days = list(map(
                             lambda n: current_time_in_NY + timedelta(days=int(n)),
                             ul_exp_range[index].split(","),
-                        )
+                        ))
                         for date in expiry_days:
                             eligible_strikes = symbols_df[
                                 symbols_df["ExpirationDate"].dt.date == date.date()
@@ -597,12 +577,12 @@ class SpreadCalculation(createConnection):
                                                 c_avg = round(sell_mid - buy_mid, 3)
                                             put_spread_pairs.append(
                                                 {
-                                                    "Short %UL": round(
+                                                    "Short %UL": format(round(
                                                         sell_strike["Strike"]
                                                         / spx_price
                                                         * 100,
                                                         2,
-                                                    ),
+                                                    ), ".2f"),
                                                     "K-Diff": round(
                                                         sell_strike["Strike"]
                                                         - buy_strike["Strike"],
@@ -611,13 +591,13 @@ class SpreadCalculation(createConnection):
                                                     "DTE": (
                                                         sell_exp - current_time_in_NY
                                                     ).days,
-                                                    "C": round(sell_mid - buy_mid, 3),
+                                                    "Mid": round(sell_mid - buy_mid, 3),
                                                     "Sell Symbol": sell_strike["Symbol"],
                                                     "Buy Symbol": buy_strike["Symbol"],
                                                     "MidAvg": c_avg,
                                                     "Sell Mid": round(sell_mid, 3),
                                                     "Buy Mid": round(buy_mid, 3),
-                                                    "Short Leg IceChat": (
+                                                    "Short Leg": (
                                                         symbol
                                                         + " "
                                                         + sell_exp.strftime("%b %d")
@@ -627,7 +607,7 @@ class SpreadCalculation(createConnection):
                                                         if sell_strike["OptionType"] == "P"
                                                         else " calls"
                                                     ),
-                                                    "Long Leg IceChat": (
+                                                    "Long Leg": (
                                                         symbol
                                                         + " "
                                                         + buy_exp.strftime("%b %d")
@@ -904,7 +884,7 @@ class SpreadCalculation(createConnection):
             "CAvg": c_avg,
             "Sell-DTE": sell_dte_days,
             "Diff": (sell_dte - buy_dte).days,
-            "%UL": round(sell_strike["Strike"] / sell_u_price * 100, 2),
+            "%UL": format(round(sell_strike["Strike"] / sell_u_price * 100, 2), ".2f"),
             "K-Diff": (
                 round(buy_strike["Strike"] - sell_strike["Strike"] * 10)
                 if sell_usym == "SPY"
@@ -922,7 +902,7 @@ class SpreadCalculation(createConnection):
             "Buy-B#": buy_strike["BidSize"],
             "Buy-A": buy_strike["Ask"],
             "Buy-A#": buy_strike["AskSize"],
-            "Sell IceChat": (
+            "Short Leg": (
                 sell_usym
                 + " "
                 + sell_dte.strftime("%b %d")
@@ -932,7 +912,7 @@ class SpreadCalculation(createConnection):
                 if sell_strike["OptionType"] == "P"
                 else " calls"
             ),
-            "Buy IceChat": (
+            "Long Leg": (
                 buy_usym
                 + " "
                 + buy_dte.strftime("%b %d")
@@ -947,10 +927,10 @@ class SpreadCalculation(createConnection):
 
 if __name__ == "__main__":
     sc = SpreadCalculation()
-    sc.get_symbols(["SPY", "SPX", "QQQ"], ["7,2", "8,2"], "SPX", ["4,6"])
-    sc.invoke_update_viewer()
-    sesh = sc.connect_to_activ()
-    sc.subscribe(sesh)
+    sc.get_symbols(["SPY", "SPX", "QQQ"], ["7,2", "8,2"], ["SPX", "SPXW"], ["4,5,6"])
+    #sc.invoke_update_viewer()
+    #sesh = sc.connect_to_activ()
+    #sc.subscribe(sesh)
     #sc.subscribe_usym(sesh)
     # sc.get_put_spread_pairs([97, 96], [50, 100], ["7,8", "7,8"])
-    sc.get_buy_sell_pairs(["SPY", "SPX", "QQQ"], ["82-86", "82-86", "82-86"], ["10,4"], 50)
+    #sc.get_buy_sell_pairs(["SPY", "SPX", "QQQ"], ["82-86", "82-86", "82-86"], ["10,4"], 50)
