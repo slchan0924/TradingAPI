@@ -1,11 +1,13 @@
 #put-spread-table, #pairs {
     border-collapse: collapse;
     margin-top: 20px;
+    font-size: 14px;
 }
 #put-spread-table th, #put-spread-table td, #pairs th, #pairs td {
     border: 1px solid black;
     padding: 8px;
     text-align: left;
+    font-size: 14px;
 }
 
 #put-spread-table th:nth-child(1), #put-spread-table td:nth-child(1) {
@@ -21,18 +23,15 @@
     width: 66px;
 }
 #put-spread-table th:nth-child(5), #put-spread-table td:nth-child(5) {
-    width: 79px;
+    width: 85px;
 }
 #put-spread-table th:nth-child(6), #put-spread-table td:nth-child(6) {
     width: 85px;
 }
 #put-spread-table th:nth-child(7), #put-spread-table td:nth-child(7) {
-    width: 85px;
-}
-#put-spread-table th:nth-child(8), #put-spread-table td:nth-child(8) {
     width: 199px;
 }
-#put-spread-table th:nth-child(9), #put-spread-table td:nth-child(9) {
+#put-spread-table th:nth-child(8), #put-spread-table td:nth-child(8) {
     width: 199px;
 }
 
@@ -65,21 +64,27 @@
     width: 71px;
 }
 #pairs th:nth-child(10), #pairs td:nth-child(10) {
-    width: 197px;
+    width: 70px;
 }
 #pairs th:nth-child(11), #pairs td:nth-child(11) {
-    width: 197px;
+    width: 71px;
 }
 #pairs th:nth-child(12), #pairs td:nth-child(12) {
-    width: 90px;
+    width: 197px;
 }
 #pairs th:nth-child(13), #pairs td:nth-child(13) {
-    width: 55px;
+    width: 197px;
 }
 #pairs th:nth-child(14), #pairs td:nth-child(14) {
-    width: 65px;
+    width: 90px;
 }
 #pairs th:nth-child(15), #pairs td:nth-child(15) {
+    width: 55px;
+}
+#pairs th:nth-child(16), #pairs td:nth-child(16) {
+    width: 65px;
+}
+#pairs th:nth-child(17), #pairs td:nth-child(17) {
     width: 75px;
 }
 
