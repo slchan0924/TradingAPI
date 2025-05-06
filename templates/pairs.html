@@ -164,7 +164,6 @@
         });
         let currentDate = getCurrentTimeStamp(selectedTimezone, new Date());
         let removedColumns = []; // To keep track of removed columns and their indices
-        // let pxCols = ["Buy-B", "Sell-B", "Buy-A", "Sell-A"];
         let buyCols = ["Buy-B", "Buy-B#", "Buy-A", "Buy-A#"];
         let sellCols = ["Sell-B", "Sell-A", "Sell-B#", "Sell-A#"];
 
@@ -301,8 +300,6 @@
             }
             document.body.appendChild(ts);
         })
-        // let timeStampDiv = createTsDiv(document, currentDate);
-        // document.body.appendChild(timeStampDiv);
     </script>
 </body>
 </html>

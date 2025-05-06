@@ -81,8 +81,8 @@ class createDatabase:
             for expiry_range in data[underlying]:
                 for position_data in data[underlying][expiry_range]:
                     buy_symbol = position_data["Buy Symbol"]
-                    buy_ic = position_data["Buy IceChat"]
-                    sell_ic = position_data["Sell IceChat"]
+                    buy_ic = position_data["Long Leg"]
+                    sell_ic = position_data["Short Leg"]
                     sell_symbol = position_data["Sell Symbol"]
                     c_dollar = position_data["C$"]
                     float_c_dollar = float(c_dollar.replace(",", ""))
