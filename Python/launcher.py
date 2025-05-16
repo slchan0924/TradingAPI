@@ -15,6 +15,7 @@ import threading
 import time
 import pytz
 import asyncio
+import logging
 
 lock = threading.Lock()
 
@@ -29,6 +30,9 @@ socketio = SocketIO(app, async_mode="threading")
 app.secret_key = "kkibbe"  # Required for session management
 input_path = r"..\inputs.json"
 input_path_from_editor = r"inputs.json"
+
+# Suppress default Flask logger
+logging.getLogger('werkzeug').setLevel(logging.ERROR)
 
 
 def read_input_data():
@@ -163,7 +167,6 @@ def collectdataFromWebsite():
     pairs_start_run_time = datetime.now(tz_selected)
     current_thread = threading.Thread(target=process_input, args=(form_data, tz_selected, c_avg_start, c_avg_end, current_time, spread_start_run_time, pairs_start_run_time))
     current_thread.start()
-    #process_input(form_data, tz_selected, c_avg_start, c_avg_end, current_time, spread_start_run_time, pairs_start_run_time)
         
     return redirect(url_for("home"))
 
@@ -223,7 +226,7 @@ def process_input(form_data: dict, tz_selected, c_avg_start: datetime, c_avg_end
                 socketio.emit("buy_sell_pairs", data)
             except Exception as error:
                 print("An exception occurred while getting buy/sell pairs:", error)
-            time.sleep(1)
+            time.sleep(0.1)
 
 @app.route("/pairs/<usym>/<expiry_combo>")
 def pairs(usym, expiry_combo):
