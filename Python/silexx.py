@@ -5,19 +5,6 @@ from datetime import datetime
 from start_connection import createConnection
 
 relogin_mins = 55
-host_name = {
-    "chicago_cert": "c-gw-api-ch-cboe.silexx.com",
-    "newyork_cert": "c-gw-api-ny-cboe.silexx.com",
-    "chicago_prod": "gw-api-ch-cboe.silexx.com",
-    "newyork_prod": "gw-api-ny-cboe.silexx.com",
-}
-
-base_url = {
-    "chicago_cert": "https://c-gw-api-ch-cboe.silexx.com/api/v1",
-    "newyork_cert": "https://c-gw-api-ny-cboe.silexx.com/api/v1",
-    "chicago_prod": "https://gw-api-ch-cboe.silexx.com/api/v1",
-    "newyork_prod": "https://gw-api-ny-cboe.silexx.com/api/v1",
-}
 
 def ice_chat_to_info(ice_chat_string: str):
     # Current date for reference
@@ -90,7 +77,7 @@ class silexx_positions_and_trades(createConnection):
         # a bit of transformation to the table we wanna see
         return positions.json()
     
-    def to_html(self):
+    def positions_to_html(self):
         if len(self.positions_df.index) > 0:
             selected_positions_cols = self.positions_df[
                 [
@@ -126,6 +113,7 @@ class silexx_positions_and_trades(createConnection):
         positions_df_html = positions_df.to_html(
             classes="positions", header="true", index=False, table_id="positions_table"
         )
+        self.positions_df_html = positions_df_html
     
     def generate_order(self, account_id: str, side: str, order: dict, validate: bool):
         '''

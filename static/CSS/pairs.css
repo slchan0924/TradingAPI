@@ -91,11 +91,12 @@
 .grey-shade {
     background-color: lightgrey;
 }
-
 .yellow-shade {
     background-color: yellow;
 }
-
+.white-shade {
+    background-color: white;
+}
 .green-shade {
     background-color: green;
 }

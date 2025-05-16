@@ -287,25 +287,25 @@ class SpreadCalculation(createConnection):
                         )
                     )
                     continue
-                if (
-                    ts + "/" + expiry_start.strftime("%y%m%d") + "*.O"
-                    not in query_string
-                ):
-                    query_string.append(
-                        ts + "/" + expiry_start.strftime("%y%m%d") + "*.O"
-                    )
+                symbol_wildcard_start = ts + "/" + expiry_start.strftime("%y%m%d") + "*.O"
+                symbol_wildcard_end = ts + "/" + expiry_end.strftime("%y%m%d") + "*.O"
+                spx_wildcard_start = "SPX" + "/" + expiry_start.strftime("%y%m%d") + "*.O"
+                spxw_wildcard_start = "SPXW" + "/" + expiry_start.strftime("%y%m%d") + "*.O"
+                spxw_wildcard_end = "SPXW" + "/" + expiry_end.strftime("%y%m%d") + "*.O"
+                if symbol_wildcard_start not in query_string:
+                    query_string.append(symbol_wildcard_start)
                     if ts == "SPX":
-                        query_string.append(
-                            "SPXW" + "/" + expiry_start.strftime("%y%m%d") + "*.O"
-                        )
-                if ts + "/" + expiry_end.strftime("%y%m%d") + "*.O" not in query_string:
-                    query_string.append(
-                        ts + "/" + expiry_end.strftime("%y%m%d") + "*.O"
-                    )
+                        query_string.append(spxw_wildcard_start)
+                if symbol_wildcard_end not in query_string:
+                    query_string.append(symbol_wildcard_end)
                     if ts == "SPX":
-                        query_string.append(
-                            "SPXW" + "/" + expiry_end.strftime("%y%m%d") + "*.O"
-                        )
+                        query_string.append(spxw_wildcard_end)
+                if ts == "SPY" and "SPX" not in target_symbols:
+                    # We need to subscribe to SPX days if we sell SPY
+                    if spxw_wildcard_start not in query_string:
+                        query_string.append(spxw_wildcard_start)
+                    if spx_wildcard_start not in query_string:
+                        query_string.append(spx_wildcard_start)
 
         # put spreads
         for put_spread_expiry in put_spread_expiries:
@@ -847,6 +847,7 @@ class SpreadCalculation(createConnection):
                 DATA_SOURCE_ACTIV, "symbol={}".format(symbol), SubscriptionHandler()
             )
         activ_session.run()
+        # should I check usym first, then decide which ones to subscribe for underlying symbols?
 
     def calc_c_dollar(
         self, sell_strike: dict, buy_strike: dict, sell_u_price: float, c_average: dict
@@ -877,6 +878,8 @@ class SpreadCalculation(createConnection):
         else:
             c_avg = format_number(round(c_dollar))
         sell_dte_days = math.ceil((sell_dte - current_time_in_NY.replace(tzinfo=None)).total_seconds() / (24 * 3600))
+        buy_strike_price = buy_strike["Strike"]
+        sell_strike_price = sell_strike["Strike"]
         return {
             "C": round(c, 2),
             "C$": format_number(round(c_dollar)),
@@ -884,11 +887,11 @@ class SpreadCalculation(createConnection):
             "CAvg": c_avg,
             "Sell-DTE": sell_dte_days,
             "Diff": (sell_dte - buy_dte).days,
-            "%UL": format(round(sell_strike["Strike"] / sell_u_price * 100, 2), ".2f"),
+            "%UL": format(round(sell_strike_price / sell_u_price * 100, 2), ".2f"),
             "K-Diff": (
-                round(buy_strike["Strike"] - sell_strike["Strike"] * 10)
+                round(buy_strike_price - sell_strike_price * 10)
                 if sell_usym == "SPY"
-                else round(buy_strike["Strike"] - sell_strike["Strike"])
+                else round(buy_strike_price - sell_strike_price)
             ),
             "Sell Symbol": sell_strike["Symbol"],
             "Buy Symbol": buy_strike["Symbol"],
@@ -907,7 +910,7 @@ class SpreadCalculation(createConnection):
                 + " "
                 + sell_dte.strftime("%b %d")
                 + ", "
-                + str(int(sell_strike["Strike"]))
+                + str(int(sell_strike_price))
                 + " puts"
                 if sell_strike["OptionType"] == "P"
                 else " calls"
@@ -917,7 +920,7 @@ class SpreadCalculation(createConnection):
                 + " "
                 + buy_dte.strftime("%b %d")
                 + ", "
-                + str(int(buy_strike["Strike"]))
+                + str(int(buy_strike_price))
                 + " puts"
                 if buy_strike["OptionType"] == "P"
                 else " calls"

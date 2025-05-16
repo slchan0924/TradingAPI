@@ -7,14 +7,13 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/3.1.0/socket.io.js"></script>
     <script src="{{ url_for('static', filename='JavaScript/timeStamp.js') }}"></script>
     <style>
-        #put-spread-table, #pairs {
+        #pairs {
             border-collapse: collapse;
             margin-top: 20px;
             table-layout: fixed;
             font-size: 14px;
-            /* width: auto; */
         }
-        #put-spread-table th, #put-spread-table td, #pairs th, #pairs td {
+        #pairs th, #pairs td {
             border: 1px solid black;
             padding: 8px;
             text-align: left;
@@ -36,60 +35,11 @@
             background-color: green;
         }
         body {
-            margin: 0;
-            padding: 0;
-        }
-        .data {
-            border-collapse: collapse;
-            width: 100%;
-        }
-        .data th, .data td {
-            border: 1px solid black;
-            padding: 8px;
-            text-align: left;
-        }
-        .data th {
-            background-color: #f2f2f2;
-        }
-        .input-container {
-            margin-bottom: 10px; /* Space between input fields */
-        }
-        .pts_over {
-            line-height: 10px;
-            display: flex;
-        }
-        label {
-            margin-right: 10px; /* Space between label and input */
-            font-weight: bold; /* Make the label bold */
-        }
-        body {
             background-color: #87CEFA; /* Light Sky Blue background color */
             color: #121212;
             font-family: 'Trebuchet MS', sans-serif; /* Font style */
             margin: 0;
             padding: 20px;
-        }
-        h1, h2, h3 {
-            color: #121212; /* White color for headings */
-        }
-        #overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent background */
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000; /* Ensure it appears above other content */
-        }
-        .overlay-content {
-            color: white;
-            text-align: center;
-            background: rgba(0, 0, 0, 0.7); /* Darker background for the text */
-            padding: 20px;
-            border-radius: 10px;
         }
         .top-right {
             position: fixed;
